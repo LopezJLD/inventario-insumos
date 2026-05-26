@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Control de Inventario - Arriendo y Venta de Insumos de Construcción</title>
-  <!-- Bootstrap 5 CSS -->
+  <title>Control de Inventario - Insumos Sucor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- html5-qrcode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <!-- QRCode.js para generar QR -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     body { padding-top: 70px; }
@@ -20,10 +17,10 @@
   </style>
 </head>
 <body>
-  <!-- Barra de navegación simplificada -->
+  <!-- Barra de navegación -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">🏗️ Inventario</span>
+      <span class="navbar-brand mb-0 h1">🏗️ Insumos Sucor</span>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menú">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -37,14 +34,12 @@
     </div>
   </nav>
 
-  <!-- Contenido principal -->
   <main class="container-fluid mt-3">
     <!-- Página Escanear (Principal) -->
     <div id="page-scan" class="page active">
       <h2>Registro de Entrada y Salida</h2>
       <p class="lead text-muted">Escanea un código QR o ingrésalo manualmente. Si el producto está <strong>Disponible</strong> se marcará como <strong>Tomado</strong>; si está <strong>Tomado</strong> se marcará como <strong>Devuelto</strong>.</p>
       
-      <!-- Sección de escáner e ingreso manual -->
       <div class="row">
         <div class="col-md-6">
           <div id="reader"></div>
@@ -64,7 +59,6 @@
         </div>
       </div>
 
-      <!-- Sección de inventario debajo -->
       <hr class="my-4">
       <h3>Inventario Actual</h3>
       <div class="mb-3 btn-group" role="group">
@@ -122,7 +116,7 @@
     </div>
   </main>
 
-  <!-- Modal para mostrar QR -->
+  <!-- Modal QR -->
   <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -135,357 +129,353 @@
     </div>
   </div>
 
-  <!-- Bootstrap JS bundle -->
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    (function() {
-      // ---------- DATOS INICIALES (productos de ejemplo) ----------
-      const DEMO_PRODUCTS = [
-        { code: "PROD-001", name: "Martillo demoledor", status: "available" },
-        { code: "PROD-002", name: "Andamio modular", status: "available" },
-        { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
-        { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
-        { code: "PROD-005", name: "Taladro percutor", status: "available" },
-        { code: "PROD-006", name: "Compresor de aire", status: "available" },
-        { code: "PROD-007", name: "Generador eléctrico", status: "available" },
-        { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
-        { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
-        { code: "PROD-010", name: "Placa compactadora", status: "taken" }
-      ];
 
-      // ---------- ALMACENAMIENTO LOCAL ----------
-      function getProducts() {
-        let stored = localStorage.getItem('construction_products');
-        if (!stored) {
-          localStorage.setItem('construction_products', JSON.stringify(DEMO_PRODUCTS));
-          return DEMO_PRODUCTS.slice();
-        }
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          return DEMO_PRODUCTS.slice();
-        }
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+
+    // Configuración de Firebase (tus datos)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
+      authDomain: "insumos-sucor.firebaseapp.com",
+      databaseURL: "https://insumos-sucor-default-rtdb.firebaseio.com",
+      projectId: "insumos-sucor",
+      storageBucket: "insumos-sucor.firebasestorage.app",
+      messagingSenderId: "1027969662494",
+      appId: "1:1027969662494:web:6193effa98d8fb3b23780f",
+      measurementId: "G-MDM695J62C" // no se usa, es opcional
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Referencias en la base de datos
+    const productsRef = ref(db, 'productos');
+    const transactionsRef = ref(db, 'transacciones');
+
+    // Datos de ejemplo (si la base está vacía)
+    const DEMO_PRODUCTS = [
+      { code: "PROD-001", name: "Martillo demoledor", status: "available" },
+      { code: "PROD-002", name: "Andamio modular", status: "available" },
+      { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
+      { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
+      { code: "PROD-005", name: "Taladro percutor", status: "available" },
+      { code: "PROD-006", name: "Compresor de aire", status: "available" },
+      { code: "PROD-007", name: "Generador eléctrico", status: "available" },
+      { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
+      { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
+      { code: "PROD-010", name: "Placa compactadora", status: "taken" }
+    ];
+
+    // Arrays locales sincronizados
+    let products = [];
+    let transactions = [];
+
+    // Escuchar cambios en la base de datos
+    onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      products = data ? Object.values(data) : [];
+      if (products.length === 0) {
+        // Inicializar con productos demo
+        products = DEMO_PRODUCTS;
+        set(productsRef, products);
       }
+      renderScanInventory();
+    });
 
-      function saveProducts(products) {
-        localStorage.setItem('construction_products', JSON.stringify(products));
+    onValue(transactionsRef, (snapshot) => {
+      const data = snapshot.val();
+      transactions = data ? Object.values(data) : [];
+      if (document.getElementById('page-history').classList.contains('active')) {
+        renderHistory();
       }
+    });
 
-      function getTransactions() {
-        let stored = localStorage.getItem('construction_transactions');
-        if (!stored) return [];
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          return [];
-        }
-      }
+    // Funciones para guardar
+    function saveProducts() {
+      set(productsRef, products).catch(console.error);
+    }
 
-      function saveTransactions(transactions) {
-        localStorage.setItem('construction_transactions', JSON.stringify(transactions));
-      }
+    function saveTransactions() {
+      set(transactionsRef, transactions).catch(console.error);
+    }
 
-      // ---------- NAVEGACIÓN ----------
-      const pages = document.querySelectorAll('.page');
-      const navLinks = document.querySelectorAll('.page-link');
-      
-      function showPage(pageId) {
-        pages.forEach(p => p.classList.remove('active'));
-        document.getElementById(`page-${pageId}`).classList.add('active');
-        navLinks.forEach(link => {
-          link.classList.remove('active');
-          if (link.dataset.page === pageId) link.classList.add('active');
-        });
-        
-        // Refrescar contenido al cambiar
-        if (pageId === 'history') renderHistory();
-        if (pageId === 'scan') {
-          // Limpiar mensaje anterior
-          document.getElementById('scan-result').style.display = 'none';
-          // La tabla de inventario ya se actualiza automáticamente con renderScanInventory()
-        }
-        if (pageId === 'add') {
-          // No requiere acción especial
-        }
-      }
-
+    // ---------- NAVEGACIÓN ----------
+    const pages = document.querySelectorAll('.page');
+    const navLinks = document.querySelectorAll('.page-link');
+    
+    function showPage(pageId) {
+      pages.forEach(p => p.classList.remove('active'));
+      document.getElementById(`page-${pageId}`).classList.add('active');
       navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          stopScanner(); // Detener cámara al cambiar de página
-          showPage(link.dataset.page);
-        });
+        link.classList.remove('active');
+        if (link.dataset.page === pageId) link.classList.add('active');
+      });
+      
+      if (pageId === 'history') renderHistory();
+      if (pageId === 'scan') {
+        document.getElementById('scan-result').style.display = 'none';
+      }
+    }
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        stopScanner();
+        showPage(link.dataset.page);
+      });
+    });
+
+    // ---------- INVENTARIO DE LA PÁGINA PRINCIPAL ----------
+    let currentScanFilter = 'all';
+
+    function renderScanInventory(filter = currentScanFilter) {
+      currentScanFilter = filter;
+      const tbody = document.querySelector('#scan-inventory-table tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      
+      const filtered = products.filter(p => {
+        if (filter === 'available') return p.status === 'available';
+        if (filter === 'taken') return p.status === 'taken';
+        return true;
+      });
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin productos</td></tr>';
+        return;
+      }
+      
+      filtered.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><code>${p.code}</code></td>
+          <td>${p.name}</td>
+          <td><span class="badge ${p.status === 'available' ? 'bg-success' : 'bg-danger'}">${p.status === 'available' ? 'Disponible' : 'Tomado'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-info qr-btn" data-code="${p.code}">📱 QR</button>
+            <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}">
+              ${p.status === 'available' ? 'Marcar Tomado' : 'Marcar Devuelto'}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
 
-      // ---------- INVENTARIO DE LA PÁGINA PRINCIPAL ----------
-      let currentScanFilter = 'all';
-
-      function renderScanInventory(filter = currentScanFilter) {
-        currentScanFilter = filter;
-        const products = getProducts();
-        const tbody = document.querySelector('#scan-inventory-table tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        
-        const filtered = products.filter(p => {
-          if (filter === 'available') return p.status === 'available';
-          if (filter === 'taken') return p.status === 'taken';
-          return true;
-        });
-        
-        if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin productos</td></tr>';
-          return;
-        }
-        
-        filtered.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><code>${p.code}</code></td>
-            <td>${p.name}</td>
-            <td><span class="badge ${p.status === 'available' ? 'bg-success' : 'bg-danger'}">${p.status === 'available' ? 'Disponible' : 'Tomado'}</span></td>
-            <td>
-              <button class="btn btn-sm btn-outline-info qr-btn" data-code="${p.code}">📱 QR</button>
-              <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}">
-                ${p.status === 'available' ? 'Marcar Tomado' : 'Marcar Devuelto'}
-              </button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        // Adjuntar eventos a los nuevos botones
-        document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => {
-          btn.addEventListener('click', () => showQrModal(btn.dataset.code));
-        });
-        document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => {
-          btn.addEventListener('click', () => manualToggle(btn.dataset.code));
-        });
-      }
-
-      // Filtros del inventario en scan
-      document.querySelectorAll('.scan-filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-          renderScanInventory(this.dataset.filter);
-        });
+      document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => {
+        btn.addEventListener('click', () => showQrModal(btn.dataset.code));
       });
+      document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => manualToggle(btn.dataset.code));
+      });
+    }
 
-      // Modal QR (compartido)
-      function showQrModal(code) {
-        const modalBody = document.getElementById('qr-modal-body');
-        modalBody.innerHTML = '';
-        new QRCode(modalBody, {
-          text: code,
-          width: 220,
-          height: 220,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
-        });
-        const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
-        qrModal.show();
+    document.querySelectorAll('.scan-filter-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        renderScanInventory(this.dataset.filter);
+      });
+    });
+
+    function showQrModal(code) {
+      const modalBody = document.getElementById('qr-modal-body');
+      modalBody.innerHTML = '';
+      new QRCode(modalBody, {
+        text: code,
+        width: 220,
+        height: 220,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
+      qrModal.show();
+    }
+
+    function manualToggle(code) {
+      const product = products.find(p => p.code === code);
+      if (!product) return alert('Producto no encontrado.');
+      toggleProductStatus(product);
+    }
+
+    function toggleProductStatus(product) {
+      const oldStatus = product.status;
+      const newStatus = oldStatus === 'available' ? 'taken' : 'available';
+      product.status = newStatus;
+      
+      const index = products.findIndex(p => p.code === product.code);
+      if (index !== -1) products[index] = product;
+      
+      saveProducts();
+
+      const transaction = {
+        date: new Date().toISOString(),
+        code: product.code,
+        name: product.name,
+        action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)'
+      };
+      transactions.unshift(transaction);
+      saveTransactions();
+
+      const alertDiv = document.getElementById('scan-result');
+      if (alertDiv) {
+        alertDiv.style.display = 'block';
+        alertDiv.className = `alert mt-3 scan-result-panel ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
+        alertDiv.innerHTML = `
+          <strong>${product.name} (${product.code})</strong><br>
+          Acción: <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
+          <br><small>Estado actual: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
+        `;
       }
 
-      // Cambiar estado manualmente desde la tabla
-      function manualToggle(code) {
-        const products = getProducts();
-        const product = products.find(p => p.code === code);
-        if (!product) return alert('Producto no encontrado.');
-        toggleProductStatus(product, products);
+      renderScanInventory();
+    }
+
+    // ---------- ESCANEO QR ----------
+    let html5QrCode;
+    const startBtn = document.getElementById('start-scan-btn');
+    const stopBtn = document.getElementById('stop-scan-btn');
+    const manualCode = document.getElementById('manual-code');
+    const manualSubmit = document.getElementById('manual-submit');
+    const scanResultDiv = document.getElementById('scan-result');
+
+    function onScanSuccess(decodedText) {
+      handleScanCode(decodedText);
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }).catch(() => {});
       }
+    }
 
-      // Función principal para cambiar estado y registrar transacción
-      function toggleProductStatus(product, products) {
-        const oldStatus = product.status;
-        const newStatus = oldStatus === 'available' ? 'taken' : 'available';
-        product.status = newStatus;
-        saveProducts(products);
+    function onScanFailure(error) {}
 
-        // Registrar transacción
-        const transaction = {
-          date: new Date().toISOString(),
-          code: product.code,
-          name: product.name,
-          action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)'
-        };
-        const transactions = getTransactions();
-        transactions.unshift(transaction);
-        saveTransactions(transactions);
-
-        // Mostrar mensaje en la página de escaneo
-        const alertDiv = document.getElementById('scan-result');
-        if (alertDiv) {
-          alertDiv.style.display = 'block';
-          alertDiv.className = `alert mt-3 scan-result-panel ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
-          alertDiv.innerHTML = `
-            <strong>${product.name} (${product.code})</strong><br>
-            Acción: <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
-            <br><small>Estado actual: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
-          `;
-        }
-
-        // Actualizar inventario de la página principal
-        renderScanInventory();
-        // Si la página de historial está activa, se actualizará cuando se muestre
-      }
-
-      // ---------- ESCANEO QR (cámara trasera) ----------
-      let html5QrCode;
-      const readerDiv = document.getElementById('reader');
-      const startBtn = document.getElementById('start-scan-btn');
-      const stopBtn = document.getElementById('stop-scan-btn');
-      const manualCode = document.getElementById('manual-code');
-      const manualSubmit = document.getElementById('manual-submit');
-      const scanResultDiv = document.getElementById('scan-result');
-
-      function onScanSuccess(decodedText) {
-        handleScanCode(decodedText);
-        if (html5QrCode && html5QrCode.isScanning) {
-          html5QrCode.stop().then(() => {
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-          }).catch(() => {});
-        }
-      }
-
-      function onScanFailure(error) { /* ignorar errores de lectura parcial */ }
-
-      async function getBackCameraId() {
-        try {
-          const devices = await Html5Qrcode.getCameras();
-          if (!devices || devices.length === 0) return null;
-          for (let device of devices) {
-            const label = device.label.toLowerCase();
-            if (label.includes('back') || label.includes('rear') || label.includes('environment')) {
-              return device.id;
-            }
+    async function getBackCameraId() {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || devices.length === 0) return null;
+        for (let device of devices) {
+          const label = device.label.toLowerCase();
+          if (label.includes('back') || label.includes('rear') || label.includes('environment')) {
+            return device.id;
           }
-          return devices[0].id; // fallback
-        } catch (err) {
-          return null;
         }
+        return devices[0].id;
+      } catch (err) {
+        return null;
       }
+    }
 
-      async function startScanner() {
-        try {
-          const cameraId = await getBackCameraId();
-          if (!cameraId) {
-            alert("No se encontró ninguna cámara. Usa el ingreso manual.");
-            return;
-          }
-          html5QrCode = new Html5Qrcode("reader");
-          await html5QrCode.start(
-            { deviceId: cameraId },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess,
-            onScanFailure
-          );
-          startBtn.disabled = true;
-          stopBtn.disabled = false;
-        } catch (err) {
-          alert(`Error al acceder a la cámara: ${err.message || err}`);
-        }
-      }
-
-      function stopScanner() {
-        if (html5QrCode && html5QrCode.isScanning) {
-          html5QrCode.stop().then(() => {
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-          }).catch(() => {});
-        }
-      }
-
-      function handleScanCode(code) {
-        if (!code || code.trim() === '') return;
-        code = code.trim().toUpperCase();
-        const products = getProducts();
-        const product = products.find(p => p.code === code);
-        if (!product) {
-          scanResultDiv.style.display = 'block';
-          scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
-          scanResultDiv.innerHTML = `Código <strong>${code}</strong> no registrado en el inventario.`;
+    async function startScanner() {
+      try {
+        const cameraId = await getBackCameraId();
+        if (!cameraId) {
+          alert("No se encontró ninguna cámara. Usa el ingreso manual.");
           return;
         }
-        toggleProductStatus(product, products);
+        html5QrCode = new Html5Qrcode("reader");
+        await html5QrCode.start(
+          { deviceId: cameraId },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          onScanFailure
+        );
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (err) {
+        alert(`Error al acceder a la cámara: ${err.message || err}`);
       }
+    }
 
-      startBtn.addEventListener('click', startScanner);
-      stopBtn.addEventListener('click', stopScanner);
-      manualSubmit.addEventListener('click', () => {
+    function stopScanner() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }).catch(() => {});
+      }
+    }
+
+    function handleScanCode(code) {
+      if (!code || code.trim() === '') return;
+      code = code.trim().toUpperCase();
+      const product = products.find(p => p.code === code);
+      if (!product) {
+        scanResultDiv.style.display = 'block';
+        scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
+        scanResultDiv.innerHTML = `Código <strong>${code}</strong> no registrado en el inventario.`;
+        return;
+      }
+      toggleProductStatus(product);
+    }
+
+    startBtn.addEventListener('click', startScanner);
+    stopBtn.addEventListener('click', stopScanner);
+    manualSubmit.addEventListener('click', () => {
+      handleScanCode(manualCode.value);
+      manualCode.value = '';
+    });
+    manualCode.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
         handleScanCode(manualCode.value);
         manualCode.value = '';
-      });
-      manualCode.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          handleScanCode(manualCode.value);
-          manualCode.value = '';
-        }
-      });
-
-      // ---------- HISTORIAL ----------
-      function renderHistory() {
-        const transactions = getTransactions();
-        const tbody = document.querySelector('#history-table tbody');
-        tbody.innerHTML = '';
-        if (transactions.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin movimientos registrados.</td></tr>';
-          return;
-        }
-        transactions.forEach(t => {
-          const tr = document.createElement('tr');
-          const fecha = new Date(t.date);
-          const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-          tr.innerHTML = `
-            <td>${fechaStr}</td>
-            <td><code>${t.code}</code></td>
-            <td>${t.name}</td>
-            <td><span class="badge ${t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success'}">${t.action}</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
       }
+    });
 
-      document.getElementById('clear-history-btn').addEventListener('click', () => {
-        if (confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) {
-          saveTransactions([]);
-          renderHistory();
-        }
-      });
-
-      // ---------- AGREGAR PRODUCTO ----------
-      document.getElementById('add-product-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const code = document.getElementById('new-code').value.trim().toUpperCase();
-        const name = document.getElementById('new-name').value.trim();
-        const status = document.getElementById('new-status').value;
-        if (!code || !name) return alert('Completa todos los campos.');
-        const products = getProducts();
-        if (products.some(p => p.code === code)) {
-          return alert('El código ya existe. Elige otro.');
-        }
-        products.push({ code, name, status });
-        saveProducts(products);
-        alert(`Producto "${name}" agregado correctamente.`);
-        this.reset();
-        renderScanInventory(); // Actualizar la tabla principal
-      });
-
-      // ---------- INICIALIZACIÓN ----------
-      function init() {
-        if (!localStorage.getItem('construction_products')) {
-          saveProducts(DEMO_PRODUCTS);
-        }
-        // Página principal activa: scan con inventario
-        showPage('scan');
-        renderScanInventory();
-        renderHistory(); // Por si acaso
+    // ---------- HISTORIAL ----------
+    function renderHistory() {
+      const tbody = document.querySelector('#history-table tbody');
+      tbody.innerHTML = '';
+      if (transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin movimientos registrados.</td></tr>';
+        return;
       }
+      transactions.forEach(t => {
+        const tr = document.createElement('tr');
+        const fecha = new Date(t.date);
+        const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        tr.innerHTML = `
+          <td>${fechaStr}</td>
+          <td><code>${t.code}</code></td>
+          <td>${t.name}</td>
+          <td><span class="badge ${t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success'}">${t.action}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-      init();
-    })();
+    document.getElementById('clear-history-btn').addEventListener('click', () => {
+      if (confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) {
+        transactions = [];
+        saveTransactions();
+        renderHistory();
+      }
+    });
+
+    // ---------- AGREGAR PRODUCTO ----------
+    document.getElementById('add-product-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const code = document.getElementById('new-code').value.trim().toUpperCase();
+      const name = document.getElementById('new-name').value.trim();
+      const status = document.getElementById('new-status').value;
+      if (!code || !name) return alert('Completa todos los campos.');
+      if (products.some(p => p.code === code)) {
+        return alert('El código ya existe. Elige otro.');
+      }
+      products.push({ code, name, status });
+      saveProducts();
+      alert(`Producto "${name}" agregado correctamente.`);
+      this.reset();
+      renderScanInventory();
+    });
+
+    // Iniciar con la página scan
+    showPage('scan');
   </script>
 </body>
 </html>
