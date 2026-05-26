@@ -18,6 +18,8 @@
     .badge-taken { background-color: #dc3545; }
     #reader { width: 100%; max-width: 500px; margin: auto; }
     .qr-modal-body { display: flex; justify-content: center; }
+    /* Estilo para el panel de resultado en la página principal */
+    .scan-result-panel { min-height: 80px; }
   </style>
 </head>
 <body>
@@ -30,8 +32,8 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="inventory">📋 Inventario</button></li>
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="scan">📷 Escanear</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="scan">📷 Escanear</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="inventory">📋 Inventario</button></li>
           <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history">🕒 Historial</button></li>
           <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add">➕ Agregar Producto</button></li>
         </ul>
@@ -41,8 +43,33 @@
 
   <!-- Contenido principal -->
   <main class="container-fluid mt-3">
+    <!-- Página Escanear (AHORA ES LA PRINCIPAL) -->
+    <div id="page-scan" class="page active">
+      <h2>Registro de Entrada y Salida</h2>
+      <p class="lead text-muted">Escanea un código QR o ingrésalo manualmente. Si el producto está <strong>Disponible</strong> se marcará como <strong>Tomado</strong>; si está <strong>Tomado</strong> se marcará como <strong>Devuelto</strong>.</p>
+      <div class="row">
+        <div class="col-md-6">
+          <div id="reader"></div>
+          <button id="start-scan-btn" class="btn btn-primary w-100 my-2">📷 Iniciar Cámara</button>
+          <button id="stop-scan-btn" class="btn btn-warning w-100 mb-2" disabled>⏹️ Detener Cámara</button>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3">
+            <h5>Ingreso Manual de Código</h5>
+            <div class="input-group mb-2">
+              <input type="text" class="form-control" id="manual-code" placeholder="Ej: PROD-001">
+              <button class="btn btn-secondary" id="manual-submit">Registrar</button>
+            </div>
+            <small class="text-muted">También puedes pegar el código escaneado aquí.</small>
+          </div>
+          <!-- Panel de resultado fijo en esta página -->
+          <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Página Inventario -->
-    <div id="page-inventory" class="page active">
+    <div id="page-inventory" class="page">
       <h2>Inventario de Equipos y Productos</h2>
       <div class="mb-3 btn-group" role="group">
         <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">Todos</button>
@@ -56,29 +83,6 @@
           </thead>
           <tbody></tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- Página Escanear -->
-    <div id="page-scan" class="page">
-      <h2>Escanear Código QR</h2>
-      <div class="row">
-        <div class="col-md-6">
-          <div id="reader"></div>
-          <button id="start-scan-btn" class="btn btn-primary w-100 my-2">📷 Iniciar Cámara</button>
-          <button id="stop-scan-btn" class="btn btn-warning w-100 mb-2" disabled>⏹️ Detener Cámara</button>
-          <div id="scan-result" class="alert mt-3" style="display:none;"></div>
-        </div>
-        <div class="col-md-6">
-          <div class="card p-3">
-            <h5>Ingreso Manual de Código</h5>
-            <div class="input-group mb-2">
-              <input type="text" class="form-control" id="manual-code" placeholder="Ej: PROD-001">
-              <button class="btn btn-secondary" id="manual-submit">Registrar</button>
-            </div>
-            <small class="text-muted">También puedes pegar el código escaneado aquí.</small>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -198,6 +202,11 @@
         // Refrescar contenido al cambiar
         if (pageId === 'inventory') renderInventory();
         if (pageId === 'history') renderHistory();
+        // Si volvemos a escanear, limpiamos el resultado anterior
+        if (pageId === 'scan') {
+          const scanRes = document.getElementById('scan-result');
+          if (scanRes) scanRes.style.display = 'none';
+        }
       }
 
       navLinks.forEach(link => {
@@ -299,18 +308,22 @@
         transactions.unshift(transaction); // más reciente primero
         saveTransactions(transactions);
 
-        // Mostrar mensaje
+        // Mostrar mensaje en la página de escaneo (siempre visible mientras esté allí)
         const alertDiv = document.getElementById('scan-result');
         alertDiv.style.display = 'block';
-        alertDiv.className = `alert ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
-        alertDiv.innerHTML = `<strong>${product.name} (${product.code})</strong>: ${transaction.action}`;
-        setTimeout(() => { alertDiv.style.display = 'none'; }, 5000);
+        alertDiv.className = `alert mt-3 scan-result-panel ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
+        alertDiv.innerHTML = `
+          <strong>${product.name} (${product.code})</strong><br>
+          Acción realizada: <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
+          <br><small>Estado actual: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
+        `;
+        // No ocultamos automáticamente para que quede visible en la misma pantalla
 
         renderInventory();
         renderHistory();
       }
 
-      // ---------- ESCANEO QR ----------
+      // ---------- ESCANEO QR (con cámara trasera) ----------
       let html5QrCode;
       const readerDiv = document.getElementById('reader');
       const startBtn = document.getElementById('start-scan-btn');
@@ -331,23 +344,41 @@
 
       function onScanFailure(error) { /* ignorar errores de lectura parcial */ }
 
+      // Función para obtener el ID de la cámara trasera
+      async function getBackCameraId() {
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (!devices || devices.length === 0) return null;
+          // Buscar una cámara que contenga "back", "rear" o "environment" en la etiqueta
+          for (let device of devices) {
+            const label = device.label.toLowerCase();
+            if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('0')) {
+              return device.id;
+            }
+          }
+          // Si no se encontró, devolver la primera (a veces es la trasera por defecto)
+          return devices[0].id;
+        } catch (err) {
+          return null;
+        }
+      }
+
       async function startScanner() {
         try {
-          html5QrCode = new Html5Qrcode("reader");
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length) {
-            const cameraId = devices[0].id; // preferentemente trasera
-            await html5QrCode.start(
-              { deviceId: cameraId },
-              { fps: 10, qrbox: { width: 250, height: 250 } },
-              onScanSuccess,
-              onScanFailure
-            );
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-          } else {
+          const cameraId = await getBackCameraId();
+          if (!cameraId) {
             alert("No se encontró ninguna cámara. Usa el ingreso manual.");
+            return;
           }
+          html5QrCode = new Html5Qrcode("reader");
+          await html5QrCode.start(
+            { deviceId: cameraId },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            onScanFailure
+          );
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
         } catch (err) {
           alert(`Error al acceder a la cámara: ${err.message || err}`);
         }
@@ -370,9 +401,8 @@
         const product = products.find(p => p.code === code);
         if (!product) {
           scanResultDiv.style.display = 'block';
-          scanResultDiv.className = 'alert alert-danger';
+          scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
           scanResultDiv.innerHTML = `Código <strong>${code}</strong> no registrado en el inventario.`;
-          setTimeout(() => { scanResultDiv.style.display = 'none'; }, 4000);
           return;
         }
         toggleProductStatus(product, products);
@@ -451,6 +481,8 @@
         if (!localStorage.getItem('construction_products')) {
           saveProducts(DEMO_PRODUCTS);
         }
+        // Mostrar página de escaneo por defecto
+        showPage('scan');
         renderInventory();
         renderHistory();
         // Detener cámara si estuviera activa por recarga
