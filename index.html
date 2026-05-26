@@ -3,32 +3,177 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Control de Inventario - Insumos Sucor</title>
+  <title>Insumos Sucor - Control de Inventario</title>
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html5-qrcode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body { padding-top: 70px; }
-    .page { display: none; }
-    .page.active { display: block; }
-    #reader { width: 100%; max-width: 500px; margin: auto; }
-    .qr-modal-body { display: flex; justify-content: center; }
-    .scan-result-panel { min-height: 80px; }
+    :root {
+      --color-primary: #e67e22;
+      --color-primary-dark: #d35400;
+      --color-secondary: #2c3e50;
+      --color-success: #27ae60;
+      --color-danger: #c0392b;
+      --color-warning: #f39c12;
+      --color-light: #ecf0f1;
+      --color-white: #ffffff;
+      --color-dark: #2c3e50;
+      --border-radius: 12px;
+      --box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+      --transition: all 0.2s ease;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      padding-top: 70px;
+      color: #333;
+    }
+
+    /* Barra de navegación */
+    .navbar {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .navbar .btn-link {
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .navbar .btn-link.active {
+      background-color: rgba(255,255,255,0.15);
+      border-radius: 6px;
+    }
+
+    /* Tarjetas y contenedores */
+    .card {
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      transition: var(--transition);
+    }
+    .card:hover {
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+
+    /* Botones */
+    .btn {
+      border-radius: 8px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .btn-primary {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+    .btn-primary:hover {
+      background-color: var(--color-primary-dark);
+      border-color: var(--color-primary-dark);
+    }
+    .btn-success {
+      background-color: var(--color-success);
+      border-color: var(--color-success);
+    }
+    .btn-outline-info {
+      color: var(--color-secondary);
+      border-color: var(--color-secondary);
+    }
+    .btn-outline-info:hover {
+      background-color: var(--color-secondary);
+      color: white;
+    }
+
+    /* Tablas */
+    .table {
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: var(--box-shadow);
+      background-color: white;
+    }
+    .table thead th {
+      background-color: var(--color-secondary);
+      color: white;
+      font-weight: 600;
+      border: none;
+    }
+    .table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    .table tbody td {
+      vertical-align: middle;
+    }
+
+    /* Filtros */
+    .btn-group .btn-outline-secondary {
+      border-color: #bdc3c7;
+      color: #555;
+    }
+    .btn-group .btn.active {
+      background-color: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    /* Resultado escaneo */
+    .scan-result-panel {
+      min-height: 80px;
+      border-radius: var(--border-radius);
+      animation: fadeInUp 0.3s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Indicador de conexión */
+    .connection-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 999;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Footer */
+    .app-footer {
+      background-color: var(--color-secondary);
+      color: #bdc3c7;
+      font-size: 0.85rem;
+      padding: 12px 0;
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .navbar-brand { font-size: 1.1rem; }
+    }
   </style>
 </head>
 <body>
   <!-- Barra de navegación -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">🏗️ Insumos Sucor</span>
+      <span class="navbar-brand mb-0 h1"><i class="fas fa-hard-hat me-2"></i>Insumos Sucor</span>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menú">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="scan">📷 Escanear</button></li>
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history">🕒 Historial</button></li>
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add">➕ Agregar Producto</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="scan"><i class="fas fa-qrcode me-1"></i> Escanear</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history"><i class="fas fa-history me-1"></i> Historial</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add"><i class="fas fa-plus-circle me-1"></i> Agregar</button></li>
         </ul>
       </div>
     </div>
@@ -37,39 +182,45 @@
   <main class="container-fluid mt-3">
     <!-- Página Escanear (Principal) -->
     <div id="page-scan" class="page active">
-      <h2>Registro de Entrada y Salida</h2>
-      <p class="lead text-muted">Escanea un código QR o ingrésalo manualmente. Si el producto está <strong>Disponible</strong> se marcará como <strong>Tomado</strong>; si está <strong>Tomado</strong> se marcará como <strong>Devuelto</strong>.</p>
-      
-      <div class="row">
-        <div class="col-md-6">
-          <div id="reader"></div>
-          <button id="start-scan-btn" class="btn btn-primary w-100 my-2">📷 Iniciar Cámara</button>
-          <button id="stop-scan-btn" class="btn btn-warning w-100 mb-2" disabled>⏹️ Detener Cámara</button>
+      <div class="row mb-4">
+        <div class="col-12">
+          <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
+          <p class="text-muted">Escanea un código QR o ingrésalo manualmente. El estado cambiará automáticamente: <span class="badge bg-success">Disponible → Tomado</span> <span class="badge bg-danger">Tomado → Devuelto</span></p>
         </div>
-        <div class="col-md-6">
+      </div>
+      
+      <div class="row g-4">
+        <div class="col-lg-6">
           <div class="card p-3">
-            <h5>Ingreso Manual de Código</h5>
-            <div class="input-group mb-2">
-              <input type="text" class="form-control" id="manual-code" placeholder="Ej: PROD-001">
-              <button class="btn btn-secondary" id="manual-submit">Registrar</button>
-            </div>
-            <small class="text-muted">También puedes pegar el código escaneado aquí.</small>
+            <div id="reader" class="mb-3"></div>
+            <button id="start-scan-btn" class="btn btn-primary w-100 mb-2" data-bs-toggle="tooltip" title="Usar cámara trasera"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
+            <button id="stop-scan-btn" class="btn btn-outline-secondary w-100" disabled><i class="fas fa-stop me-2"></i>Detener Cámara</button>
           </div>
-          <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card p-3 h-100">
+            <h5><i class="fas fa-keyboard me-2"></i>Ingreso Manual</h5>
+            <div class="input-group mb-3">
+              <input type="text" class="form-control" id="manual-code" placeholder="PROD-001">
+              <button class="btn btn-primary" id="manual-submit"><i class="fas fa-check me-1"></i> Registrar</button>
+            </div>
+            <small class="text-muted">Pega el código escaneado o escríbelo directamente.</small>
+            <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
+          </div>
         </div>
       </div>
 
       <hr class="my-4">
-      <h3>Inventario Actual</h3>
+      <h3 class="fw-bold"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
       <div class="mb-3 btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all">Todos</button>
-        <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available">Disponibles</button>
-        <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken">Tomados</button>
+        <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all"><i class="fas fa-list me-1"></i> Todos</button>
+        <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available"><i class="fas fa-check-circle me-1"></i> Disponibles</button>
+        <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken"><i class="fas fa-truck me-1"></i> Tomados</button>
       </div>
       <div class="table-responsive">
-        <table class="table table-striped table-hover" id="scan-inventory-table">
-          <thead class="table-dark">
-            <tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acción</th></tr>
+        <table class="table table-hover align-middle" id="scan-inventory-table">
+          <thead>
+            <tr><th>Código</th><th>Nombre</th><th>Estado</th><th style="min-width:200px;">Acciones</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -78,29 +229,31 @@
 
     <!-- Página Historial -->
     <div id="page-history" class="page">
-      <h2>Historial de Movimientos</h2>
+      <h2 class="fw-bold"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
       <div class="table-responsive">
-        <table class="table table-striped" id="history-table">
-          <thead class="table-dark">
+        <table class="table table-hover" id="history-table">
+          <thead>
             <tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th></tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-      <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-2">🗑️ Limpiar historial</button>
+      <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-2"><i class="fas fa-trash-alt me-1"></i> Limpiar historial</button>
     </div>
 
     <!-- Página Agregar Producto -->
     <div id="page-add" class="page">
-      <h2>Agregar Nuevo Producto</h2>
-      <form id="add-product-form" class="row g-3">
+      <h2 class="fw-bold"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Nuevo Producto</h2>
+      <form id="add-product-form" class="row g-3 needs-validation" novalidate>
         <div class="col-md-4">
           <label for="new-code" class="form-label">Código único</label>
           <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
+          <div class="invalid-feedback">Ingresa un código.</div>
         </div>
         <div class="col-md-4">
           <label for="new-name" class="form-label">Nombre del producto</label>
           <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador de concreto" required>
+          <div class="invalid-feedback">Ingresa un nombre.</div>
         </div>
         <div class="col-md-2">
           <label for="new-status" class="form-label">Estado inicial</label>
@@ -110,14 +263,34 @@
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
-          <button type="submit" class="btn btn-success w-100">Agregar</button>
+          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save me-1"></i> Agregar</button>
         </div>
       </form>
+      <div class="mt-4">
+        <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm"><i class="fas fa-sync-alt me-1"></i> Reiniciar datos de demostración</button>
+      </div>
     </div>
   </main>
 
+  <!-- Modal Confirmación cambio manual -->
+  <div class="modal fade" id="confirmToggleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar cambio</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="confirmToggleBody"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="confirmToggleBtn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal QR -->
-  <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+  <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
@@ -129,15 +302,24 @@
     </div>
   </div>
 
+  <!-- Indicador de conexión -->
+  <div id="connection-badge" class="connection-badge badge bg-secondary"><i class="fas fa-circle-notch fa-spin me-1"></i> Conectando...</div>
+
+  <!-- Footer -->
+  <footer class="app-footer mt-5">
+    <div class="container">
+      <span>© 2025 Insumos Sucor - Control de inventario | Desarrollado para gestión interna</span>
+    </div>
+  </footer>
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
-    // Configuración de Firebase (tus datos)
+    // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
       authDomain: "insumos-sucor.firebaseapp.com",
@@ -146,40 +328,47 @@
       storageBucket: "insumos-sucor.firebasestorage.app",
       messagingSenderId: "1027969662494",
       appId: "1:1027969662494:web:6193effa98d8fb3b23780f",
-      measurementId: "G-MDM695J62C" // no se usa, es opcional
+      measurementId: "G-MDM695J62C"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Referencias en la base de datos
     const productsRef = ref(db, 'productos');
     const transactionsRef = ref(db, 'transacciones');
 
-    // Datos de ejemplo (si la base está vacía)
-    const DEMO_PRODUCTS = [
-      { code: "PROD-001", name: "Martillo demoledor", status: "available" },
-      { code: "PROD-002", name: "Andamio modular", status: "available" },
-      { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
-      { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
-      { code: "PROD-005", name: "Taladro percutor", status: "available" },
-      { code: "PROD-006", name: "Compresor de aire", status: "available" },
-      { code: "PROD-007", name: "Generador eléctrico", status: "available" },
-      { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
-      { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
-      { code: "PROD-010", name: "Placa compactadora", status: "taken" }
-    ];
-
-    // Arrays locales sincronizados
+    // Estado
     let products = [];
     let transactions = [];
+    let pendingToggle = null; // para confirmación manual
 
-    // Escuchar cambios en la base de datos
+    // Tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
+
+    // Badge conexión
+    const connectionBadge = document.getElementById('connection-badge');
+    function setConnectionStatus(online) {
+      if (online) {
+        connectionBadge.className = 'connection-badge badge bg-success';
+        connectionBadge.innerHTML = '<i class="fas fa-link me-1"></i> En línea';
+      } else {
+        connectionBadge.className = 'connection-badge badge bg-danger';
+        connectionBadge.innerHTML = '<i class="fas fa-unlink me-1"></i> Desconectado';
+      }
+    }
+
+    // Monitorear conexión Firebase
+    const connectedRef = ref(db, '.info/connected');
+    onValue(connectedRef, (snap) => {
+      setConnectionStatus(snap.val() === true);
+    });
+
+    // Escuchar datos
     onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       products = data ? Object.values(data) : [];
       if (products.length === 0) {
-        // Inicializar con productos demo
         products = DEMO_PRODUCTS;
         set(productsRef, products);
       }
@@ -194,19 +383,25 @@
       }
     });
 
-    // Funciones para guardar
-    function saveProducts() {
-      set(productsRef, products).catch(console.error);
-    }
+    const DEMO_PRODUCTS = [
+      { code: "PROD-001", name: "Martillo demoledor", status: "available" },
+      { code: "PROD-002", name: "Andamio modular", status: "available" },
+      { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
+      { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
+      { code: "PROD-005", name: "Taladro percutor", status: "available" },
+      { code: "PROD-006", name: "Compresor de aire", status: "available" },
+      { code: "PROD-007", name: "Generador eléctrico", status: "available" },
+      { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
+      { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
+      { code: "PROD-010", name: "Placa compactadora", status: "taken" }
+    ];
 
-    function saveTransactions() {
-      set(transactionsRef, transactions).catch(console.error);
-    }
+    function saveProducts() { set(productsRef, products).catch(console.error); }
+    function saveTransactions() { set(transactionsRef, transactions).catch(console.error); }
 
-    // ---------- NAVEGACIÓN ----------
+    // Navegación
     const pages = document.querySelectorAll('.page');
     const navLinks = document.querySelectorAll('.page-link');
-    
     function showPage(pageId) {
       pages.forEach(p => p.classList.remove('active'));
       document.getElementById(`page-${pageId}`).classList.add('active');
@@ -214,13 +409,9 @@
         link.classList.remove('active');
         if (link.dataset.page === pageId) link.classList.add('active');
       });
-      
       if (pageId === 'history') renderHistory();
-      if (pageId === 'scan') {
-        document.getElementById('scan-result').style.display = 'none';
-      }
+      if (pageId === 'scan') document.getElementById('scan-result').style.display = 'none';
     }
-
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -229,26 +420,22 @@
       });
     });
 
-    // ---------- INVENTARIO DE LA PÁGINA PRINCIPAL ----------
+    // Inventario
     let currentScanFilter = 'all';
-
     function renderScanInventory(filter = currentScanFilter) {
       currentScanFilter = filter;
       const tbody = document.querySelector('#scan-inventory-table tbody');
       if (!tbody) return;
       tbody.innerHTML = '';
-      
       const filtered = products.filter(p => {
         if (filter === 'available') return p.status === 'available';
         if (filter === 'taken') return p.status === 'taken';
         return true;
       });
-      
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin productos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
         return;
       }
-      
       filtered.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -256,21 +443,18 @@
           <td>${p.name}</td>
           <td><span class="badge ${p.status === 'available' ? 'bg-success' : 'bg-danger'}">${p.status === 'available' ? 'Disponible' : 'Tomado'}</span></td>
           <td>
-            <button class="btn btn-sm btn-outline-info qr-btn" data-code="${p.code}">📱 QR</button>
-            <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}">
-              ${p.status === 'available' ? 'Marcar Tomado' : 'Marcar Devuelto'}
+            <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}" data-bs-toggle="tooltip" title="Ver QR"><i class="fas fa-qrcode"></i></button>
+            <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}" data-bs-toggle="tooltip" title="${p.status === 'available' ? 'Marcar como Tomado' : 'Marcar como Devuelto'}">
+              <i class="fas ${p.status === 'available' ? 'fa-arrow-right' : 'fa-undo-alt'} me-1"></i> ${p.status === 'available' ? 'Tomar' : 'Devolver'}
             </button>
           </td>
         `;
         tbody.appendChild(tr);
       });
-
-      document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => {
-        btn.addEventListener('click', () => showQrModal(btn.dataset.code));
-      });
-      document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => manualToggle(btn.dataset.code));
-      });
+      // Re-inicializar tooltips
+      document.querySelectorAll('#scan-inventory-table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+      document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => btn.addEventListener('click', () => showQrModal(btn.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () => requestManualToggle(btn.dataset.code)));
     }
 
     document.querySelectorAll('.scan-filter-btn').forEach(btn => {
@@ -282,23 +466,38 @@
     });
 
     function showQrModal(code) {
-      const modalBody = document.getElementById('qr-modal-body');
-      modalBody.innerHTML = '';
-      new QRCode(modalBody, {
-        text: code,
-        width: 220,
-        height: 220,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
+      document.getElementById('qr-modal-body').innerHTML = '';
+      new QRCode(document.getElementById('qr-modal-body'), {
+        text: code, width: 220, height: 220,
+        colorDark: "#2c3e50", colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
       });
-      const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
-      qrModal.show();
+      new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
+
+    // Confirmación manual
+    function requestManualToggle(code) {
+      const product = products.find(p => p.code === code);
+      if (!product) return;
+      const newStatus = product.status === 'available' ? 'taken' : 'available';
+      const actionText = newStatus === 'taken' ? 'marcar como Tomado' : 'marcar como Devuelto';
+      document.getElementById('confirmToggleBody').innerHTML = `¿Deseas <strong>${actionText}</strong> el producto <strong>${product.name} (${product.code})</strong>?`;
+      pendingToggle = code;
+      const modal = new bootstrap.Modal(document.getElementById('confirmToggleModal'));
+      modal.show();
+    }
+
+    document.getElementById('confirmToggleBtn').addEventListener('click', () => {
+      if (pendingToggle) {
+        manualToggle(pendingToggle);
+        pendingToggle = null;
+        bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
+      }
+    });
 
     function manualToggle(code) {
       const product = products.find(p => p.code === code);
-      if (!product) return alert('Producto no encontrado.');
+      if (!product) return;
       toggleProductStatus(product);
     }
 
@@ -306,10 +505,8 @@
       const oldStatus = product.status;
       const newStatus = oldStatus === 'available' ? 'taken' : 'available';
       product.status = newStatus;
-      
       const index = products.findIndex(p => p.code === product.code);
       if (index !== -1) products[index] = product;
-      
       saveProducts();
 
       const transaction = {
@@ -326,20 +523,24 @@
         alertDiv.style.display = 'block';
         alertDiv.className = `alert mt-3 scan-result-panel ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
         alertDiv.innerHTML = `
+          <i class="fas ${newStatus === 'taken' ? 'fa-arrow-right' : 'fa-undo-alt'} me-2"></i>
           <strong>${product.name} (${product.code})</strong><br>
-          Acción: <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
-          <br><small>Estado actual: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
+          <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
+          <small class="ms-2">Estado: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
         `;
+        // Efecto de pulso
+        alertDiv.style.animation = 'none';
+        alertDiv.offsetHeight; // reflow
+        alertDiv.style.animation = 'fadeInUp 0.3s ease';
       }
-
       renderScanInventory();
     }
 
-    // ---------- ESCANEO QR ----------
+    // Escáner QR
     let html5QrCode;
     const startBtn = document.getElementById('start-scan-btn');
     const stopBtn = document.getElementById('stop-scan-btn');
-    const manualCode = document.getElementById('manual-code');
+    const manualInput = document.getElementById('manual-code');
     const manualSubmit = document.getElementById('manual-submit');
     const scanResultDiv = document.getElementById('scan-result');
 
@@ -352,7 +553,6 @@
         }).catch(() => {});
       }
     }
-
     function onScanFailure(error) {}
 
     async function getBackCameraId() {
@@ -361,35 +561,25 @@
         if (!devices || devices.length === 0) return null;
         for (let device of devices) {
           const label = device.label.toLowerCase();
-          if (label.includes('back') || label.includes('rear') || label.includes('environment')) {
-            return device.id;
-          }
+          if (label.includes('back') || label.includes('rear') || label.includes('environment')) return device.id;
         }
         return devices[0].id;
-      } catch (err) {
-        return null;
-      }
+      } catch { return null; }
     }
 
     async function startScanner() {
       try {
         const cameraId = await getBackCameraId();
-        if (!cameraId) {
-          alert("No se encontró ninguna cámara. Usa el ingreso manual.");
-          return;
-        }
+        if (!cameraId) { alert("No se encontró cámara trasera."); return; }
         html5QrCode = new Html5Qrcode("reader");
         await html5QrCode.start(
           { deviceId: cameraId },
           { fps: 10, qrbox: { width: 250, height: 250 } },
-          onScanSuccess,
-          onScanFailure
+          onScanSuccess, onScanFailure
         );
         startBtn.disabled = true;
         stopBtn.disabled = false;
-      } catch (err) {
-        alert(`Error al acceder a la cámara: ${err.message || err}`);
-      }
+      } catch (err) { alert("Error al iniciar cámara: " + err.message); }
     }
 
     function stopScanner() {
@@ -408,7 +598,7 @@
       if (!product) {
         scanResultDiv.style.display = 'block';
         scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
-        scanResultDiv.innerHTML = `Código <strong>${code}</strong> no registrado en el inventario.`;
+        scanResultDiv.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i> Código <strong>${code}</strong> no registrado.`;
         return;
       }
       toggleProductStatus(product);
@@ -416,29 +606,21 @@
 
     startBtn.addEventListener('click', startScanner);
     stopBtn.addEventListener('click', stopScanner);
-    manualSubmit.addEventListener('click', () => {
-      handleScanCode(manualCode.value);
-      manualCode.value = '';
-    });
-    manualCode.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        handleScanCode(manualCode.value);
-        manualCode.value = '';
-      }
-    });
+    manualSubmit.addEventListener('click', () => { handleScanCode(manualInput.value); manualInput.value = ''; });
+    manualInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleScanCode(manualInput.value); manualInput.value = ''; } });
 
-    // ---------- HISTORIAL ----------
+    // Historial
     function renderHistory() {
       const tbody = document.querySelector('#history-table tbody');
       tbody.innerHTML = '';
       if (transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin movimientos registrados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>';
         return;
       }
       transactions.forEach(t => {
-        const tr = document.createElement('tr');
         const fecha = new Date(t.date);
-        const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${fechaStr}</td>
           <td><code>${t.code}</code></td>
@@ -450,31 +632,50 @@
     }
 
     document.getElementById('clear-history-btn').addEventListener('click', () => {
-      if (confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) {
+      if (confirm('¿Borrar todo el historial?')) {
         transactions = [];
         saveTransactions();
         renderHistory();
       }
     });
 
-    // ---------- AGREGAR PRODUCTO ----------
-    document.getElementById('add-product-form').addEventListener('submit', function(e) {
+    // Agregar producto
+    const form = document.getElementById('add-product-form');
+    form.addEventListener('submit', function(e) {
       e.preventDefault();
+      if (!form.checkValidity()) {
+        e.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+      }
       const code = document.getElementById('new-code').value.trim().toUpperCase();
       const name = document.getElementById('new-name').value.trim();
       const status = document.getElementById('new-status').value;
-      if (!code || !name) return alert('Completa todos los campos.');
       if (products.some(p => p.code === code)) {
-        return alert('El código ya existe. Elige otro.');
+        alert('El código ya existe.');
+        return;
       }
       products.push({ code, name, status });
       saveProducts();
-      alert(`Producto "${name}" agregado correctamente.`);
-      this.reset();
+      alert(`Producto "${name}" agregado.`);
+      form.reset();
+      form.classList.remove('was-validated');
       renderScanInventory();
     });
 
-    // Iniciar con la página scan
+    // Reiniciar demo
+    document.getElementById('reset-demo-btn').addEventListener('click', () => {
+      if (confirm('¿Reemplazar todos los productos con los datos de demostración?')) {
+        products = DEMO_PRODUCTS;
+        saveProducts();
+        transactions = [];
+        saveTransactions();
+        renderScanInventory();
+        renderHistory();
+      }
+    });
+
+    // Inicializar página scan
     showPage('scan');
   </script>
 </body>
