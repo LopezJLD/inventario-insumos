@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Control de Inventario - Arriendo y Venta de Insumos de Construcción</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- html5-qrcode -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- QRCode.js para generar QR -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body { padding-top: 70px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .badge-available { background-color: #28a745; }
+    .badge-taken { background-color: #dc3545; }
+    #reader { width: 100%; max-width: 500px; margin: auto; }
+    .qr-modal-body { display: flex; justify-content: center; }
+  </style>
+</head>
+<body>
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">🏗️ Inventario</span>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menú">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="inventory">📋 Inventario</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="scan">📷 Escanear</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history">🕒 Historial</button></li>
+          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add">➕ Agregar Producto</button></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="container-fluid mt-3">
+    <!-- Página Inventario -->
+    <div id="page-inventory" class="page active">
+      <h2>Inventario de Equipos y Productos</h2>
+      <div class="mb-3 btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">Todos</button>
+        <button type="button" class="btn btn-outline-success filter-btn" data-filter="available">Disponibles</button>
+        <button type="button" class="btn btn-outline-danger filter-btn" data-filter="taken">Tomados</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped table-hover" id="inventory-table">
+          <thead class="table-dark">
+            <tr><th>Código</th><th>Nombre</th><th>Estado</th><th>Acción</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Página Escanear -->
+    <div id="page-scan" class="page">
+      <h2>Escanear Código QR</h2>
+      <div class="row">
+        <div class="col-md-6">
+          <div id="reader"></div>
+          <button id="start-scan-btn" class="btn btn-primary w-100 my-2">📷 Iniciar Cámara</button>
+          <button id="stop-scan-btn" class="btn btn-warning w-100 mb-2" disabled>⏹️ Detener Cámara</button>
+          <div id="scan-result" class="alert mt-3" style="display:none;"></div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3">
+            <h5>Ingreso Manual de Código</h5>
+            <div class="input-group mb-2">
+              <input type="text" class="form-control" id="manual-code" placeholder="Ej: PROD-001">
+              <button class="btn btn-secondary" id="manual-submit">Registrar</button>
+            </div>
+            <small class="text-muted">También puedes pegar el código escaneado aquí.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página Historial -->
+    <div id="page-history" class="page">
+      <h2>Historial de Movimientos</h2>
+      <div class="table-responsive">
+        <table class="table table-striped" id="history-table">
+          <thead class="table-dark">
+            <tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-2">🗑️ Limpiar historial</button>
+    </div>
+
+    <!-- Página Agregar Producto -->
+    <div id="page-add" class="page">
+      <h2>Agregar Nuevo Producto</h2>
+      <form id="add-product-form" class="row g-3">
+        <div class="col-md-4">
+          <label for="new-code" class="form-label">Código único</label>
+          <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
+        </div>
+        <div class="col-md-4">
+          <label for="new-name" class="form-label">Nombre del producto</label>
+          <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador de concreto" required>
+        </div>
+        <div class="col-md-2">
+          <label for="new-status" class="form-label">Estado inicial</label>
+          <select class="form-select" id="new-status">
+            <option value="available">Disponible</option>
+            <option value="taken">Tomado</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100">Agregar</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Modal para mostrar QR -->
+  <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Código QR del Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body qr-modal-body" id="qr-modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function() {
+      // ---------- DATOS INICIALES (productos de ejemplo) ----------
+      const DEMO_PRODUCTS = [
+        { code: "PROD-001", name: "Martillo demoledor", status: "available" },
+        { code: "PROD-002", name: "Andamio modular", status: "available" },
+        { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
+        { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
+        { code: "PROD-005", name: "Taladro percutor", status: "available" },
+        { code: "PROD-006", name: "Compresor de aire", status: "available" },
+        { code: "PROD-007", name: "Generador eléctrico", status: "available" },
+        { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
+        { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
+        { code: "PROD-010", name: "Placa compactadora", status: "taken" }   // uno tomado de ejemplo
+      ];
+
+      // ---------- ALMACENAMIENTO LOCAL ----------
+      function getProducts() {
+        let stored = localStorage.getItem('construction_products');
+        if (!stored) {
+          localStorage.setItem('construction_products', JSON.stringify(DEMO_PRODUCTS));
+          return DEMO_PRODUCTS.slice();
+        }
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          return DEMO_PRODUCTS.slice();
+        }
+      }
+
+      function saveProducts(products) {
+        localStorage.setItem('construction_products', JSON.stringify(products));
+      }
+
+      function getTransactions() {
+        let stored = localStorage.getItem('construction_transactions');
+        if (!stored) return [];
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveTransactions(transactions) {
+        localStorage.setItem('construction_transactions', JSON.stringify(transactions));
+      }
+
+      // ---------- NAVEGACIÓN ----------
+      const pages = document.querySelectorAll('.page');
+      const navLinks = document.querySelectorAll('.page-link');
+      function showPage(pageId) {
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${pageId}`).classList.add('active');
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.dataset.page === pageId) link.classList.add('active');
+        });
+        // Refrescar contenido al cambiar
+        if (pageId === 'inventory') renderInventory();
+        if (pageId === 'history') renderHistory();
+      }
+
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          showPage(link.dataset.page);
+        });
+      });
+
+      // ---------- INVENTARIO ----------
+      let currentFilter = 'all';
+      function renderInventory(filter = currentFilter) {
+        currentFilter = filter;
+        const products = getProducts();
+        const tbody = document.querySelector('#inventory-table tbody');
+        tbody.innerHTML = '';
+        const filtered = products.filter(p => {
+          if (filter === 'available') return p.status === 'available';
+          if (filter === 'taken') return p.status === 'taken';
+          return true;
+        });
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin productos</td></tr>';
+          return;
+        }
+        filtered.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${p.code}</code></td>
+            <td>${p.name}</td>
+            <td><span class="badge ${p.status === 'available' ? 'bg-success' : 'bg-danger'}">${p.status === 'available' ? 'Disponible' : 'Tomado'}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-info qr-btn" data-code="${p.code}">📱 QR</button>
+              <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}">
+                ${p.status === 'available' ? 'Marcar Tomado' : 'Marcar Devuelto'}
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Eventos de botones QR y toggle
+        document.querySelectorAll('.qr-btn').forEach(btn => {
+          btn.addEventListener('click', () => showQrModal(btn.dataset.code));
+        });
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+          btn.addEventListener('click', () => manualToggle(btn.dataset.code));
+        });
+      }
+
+      // Filtros
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          renderInventory(this.dataset.filter);
+        });
+      });
+
+      // Modal QR
+      function showQrModal(code) {
+        const modalBody = document.getElementById('qr-modal-body');
+        modalBody.innerHTML = ''; // limpiar anterior
+        new QRCode(modalBody, {
+          text: code,
+          width: 220,
+          height: 220,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+        const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
+        qrModal.show();
+      }
+
+      // Cambiar estado manualmente
+      function manualToggle(code) {
+        const products = getProducts();
+        const product = products.find(p => p.code === code);
+        if (!product) return alert('Producto no encontrado.');
+        toggleProductStatus(product, products);
+      }
+
+      // Función principal para cambiar estado y registrar transacción
+      function toggleProductStatus(product, products) {
+        const oldStatus = product.status;
+        const newStatus = oldStatus === 'available' ? 'taken' : 'available';
+        product.status = newStatus;
+        saveProducts(products);
+
+        // Registrar transacción
+        const transaction = {
+          date: new Date().toISOString(),
+          code: product.code,
+          name: product.name,
+          action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)'
+        };
+        const transactions = getTransactions();
+        transactions.unshift(transaction); // más reciente primero
+        saveTransactions(transactions);
+
+        // Mostrar mensaje
+        const alertDiv = document.getElementById('scan-result');
+        alertDiv.style.display = 'block';
+        alertDiv.className = `alert ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
+        alertDiv.innerHTML = `<strong>${product.name} (${product.code})</strong>: ${transaction.action}`;
+        setTimeout(() => { alertDiv.style.display = 'none'; }, 5000);
+
+        renderInventory();
+        renderHistory();
+      }
+
+      // ---------- ESCANEO QR ----------
+      let html5QrCode;
+      const readerDiv = document.getElementById('reader');
+      const startBtn = document.getElementById('start-scan-btn');
+      const stopBtn = document.getElementById('stop-scan-btn');
+      const manualCode = document.getElementById('manual-code');
+      const manualSubmit = document.getElementById('manual-submit');
+      const scanResultDiv = document.getElementById('scan-result');
+
+      function onScanSuccess(decodedText) {
+        handleScanCode(decodedText);
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+          }).catch(() => {});
+        }
+      }
+
+      function onScanFailure(error) { /* ignorar errores de lectura parcial */ }
+
+      async function startScanner() {
+        try {
+          html5QrCode = new Html5Qrcode("reader");
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length) {
+            const cameraId = devices[0].id; // preferentemente trasera
+            await html5QrCode.start(
+              { deviceId: cameraId },
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              onScanSuccess,
+              onScanFailure
+            );
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+          } else {
+            alert("No se encontró ninguna cámara. Usa el ingreso manual.");
+          }
+        } catch (err) {
+          alert(`Error al acceder a la cámara: ${err.message || err}`);
+        }
+      }
+
+      function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+          }).catch(() => {});
+        }
+      }
+
+      // Procesar código (desde escaneo o manual)
+      function handleScanCode(code) {
+        if (!code || code.trim() === '') return;
+        code = code.trim().toUpperCase();
+        const products = getProducts();
+        const product = products.find(p => p.code === code);
+        if (!product) {
+          scanResultDiv.style.display = 'block';
+          scanResultDiv.className = 'alert alert-danger';
+          scanResultDiv.innerHTML = `Código <strong>${code}</strong> no registrado en el inventario.`;
+          setTimeout(() => { scanResultDiv.style.display = 'none'; }, 4000);
+          return;
+        }
+        toggleProductStatus(product, products);
+      }
+
+      startBtn.addEventListener('click', startScanner);
+      stopBtn.addEventListener('click', stopScanner);
+      manualSubmit.addEventListener('click', () => {
+        handleScanCode(manualCode.value);
+        manualCode.value = '';
+      });
+      manualCode.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleScanCode(manualCode.value);
+          manualCode.value = '';
+        }
+      });
+
+      // Detener cámara al cambiar de página
+      window.addEventListener('beforeunload', stopScanner);
+      document.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', stopScanner);
+      });
+
+      // ---------- HISTORIAL ----------
+      function renderHistory() {
+        const transactions = getTransactions();
+        const tbody = document.querySelector('#history-table tbody');
+        tbody.innerHTML = '';
+        if (transactions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin movimientos registrados.</td></tr>';
+          return;
+        }
+        transactions.forEach(t => {
+          const tr = document.createElement('tr');
+          const fecha = new Date(t.date);
+          const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+          tr.innerHTML = `
+            <td>${fechaStr}</td>
+            <td><code>${t.code}</code></td>
+            <td>${t.name}</td>
+            <td><span class="badge ${t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success'}">${t.action}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('clear-history-btn').addEventListener('click', () => {
+        if (confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) {
+          saveTransactions([]);
+          renderHistory();
+        }
+      });
+
+      // ---------- AGREGAR PRODUCTO ----------
+      document.getElementById('add-product-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const code = document.getElementById('new-code').value.trim().toUpperCase();
+        const name = document.getElementById('new-name').value.trim();
+        const status = document.getElementById('new-status').value;
+        if (!code || !name) return alert('Completa todos los campos.');
+        const products = getProducts();
+        if (products.some(p => p.code === code)) {
+          return alert('El código ya existe. Elige otro.');
+        }
+        products.push({ code, name, status });
+        saveProducts(products);
+        alert(`Producto "${name}" agregado correctamente.`);
+        this.reset();
+        renderInventory();
+      });
+
+      // ---------- INICIALIZACIÓN ----------
+      function init() {
+        // Cargar productos demo si no existen
+        if (!localStorage.getItem('construction_products')) {
+          saveProducts(DEMO_PRODUCTS);
+        }
+        renderInventory();
+        renderHistory();
+        // Detener cámara si estuviera activa por recarga
+        if (html5QrCode && html5QrCode.isScanning) stopScanner();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
