@@ -1,894 +1,318 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Insumos Sucor · Control de Inventario</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, shrink-to-fit=yes">
+  <title>Insumos Sucor · Control de Inventario</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html5-qrcode -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --color-primary: #f07b26;
+      --color-primary-hover: #d4691e;
+      --color-secondary: #1e2a38;
+      --color-bg: #f5f7fb;
+      --color-card: #ffffff;
+      --color-text: #1e293b;
+      --border-radius: 14px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+      --shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+    body {
+      background: var(--color-bg);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      padding-top: 64px;
+      color: var(--color-text);
+      margin: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-hidden { display: none !important; }
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html5-qrcode -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
-    </script>
-    <!-- QRCode.js -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
-    </script>
+    /* Login */
+    #login-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1e2a38, #2c3e50);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; padding: 16px;
+    }
+    .login-card {
+      width: 100%; max-width: 400px; background: #fff;
+      border-radius: 18px; padding: 28px 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .login-card .login-icon {
+      width: 54px; height: 54px; background: #fff3e8;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; font-size: 1.5rem; color: var(--color-primary);
+    }
+    .login-card .btn-primary {
+      background: var(--color-primary); border: none; border-radius: 10px;
+      font-weight: 600; padding: 10px;
+    }
 
-    <style>
-        :root {
-            --color-primary: #f07b26;
-            --color-primary-hover: #d4691e;
-            --color-primary-light: #fff3e8;
-            --color-secondary: #1e2a38;
-            --color-secondary-light: #2c3e50;
-            --color-success: #198754;
-            --color-danger: #c0392b;
-            --color-warning: #e67e22;
-            --color-bg: #f4f6f9;
-            --color-card: #ffffff;
-            --color-text: #1e293b;
-            --color-text-muted: #64748b;
-            --color-border: #e2e8f0;
-            --border-radius: 14px;
-            --border-radius-sm: 10px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-            --shadow: 0 4px 14px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    /* Navbar */
+    .navbar {
+      background: var(--color-secondary); box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      min-height: 56px;
+    }
+    .navbar-brand {
+      font-weight: 700; color: #fff !important;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .navbar-brand i { color: var(--color-primary); }
+    .navbar-toggler { border: none; color: #fff; }
+    .navbar .nav-link {
+      color: rgba(255,255,255,0.85) !important;
+      font-weight: 500; padding: 10px 14px; border-radius: 10px;
+      margin: 2px; background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .navbar .nav-link.active {
+      background: rgba(240,123,38,0.25) !important; color: #fff !important;
+    }
+    #logout-btn {
+      border-radius: 10px; padding: 6px 14px; font-size: 0.85rem;
+      border: 1.5px solid rgba(255,255,255,0.5); color: #fff; background: transparent;
+    }
+    @media (max-width: 991px) {
+      .navbar .navbar-collapse {
+        background: #2c3e50; border-radius: 12px; padding: 8px; margin-top: 8px;
+      }
+      .navbar .nav-link { padding: 12px; }
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    /* Contenido principal */
+    main { padding: 16px; max-width: 1300px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-        body {
-            background-color: var(--color-bg);
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            padding-top: 64px;
-            color: var(--color-text);
-            margin: 0;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-font-smoothing: antialiased;
-            line-height: 1.5;
-        }
+    .card {
+      border: none; border-radius: var(--border-radius);
+      box-shadow: var(--shadow); background: var(--color-card);
+    }
+    .btn {
+      border-radius: 10px; font-weight: 500; transition: 0.2s;
+    }
+    .btn-primary { background: var(--color-primary); border-color: var(--color-primary); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .badge.bg-success { background: #d1fae5 !important; color: #065f46 !important; }
+    .badge.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
+    .table {
+      border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);
+      background: #fff; font-size: 0.9rem;
+    }
+    .table thead th {
+      background: var(--color-secondary); color: #fff; font-weight: 600;
+      border: none; padding: 12px;
+    }
+    .table tbody td { vertical-align: middle; padding: 10px 12px; }
+    .table-responsive { border-radius: 12px; }
 
-        /* ========== PANTALLA DE LOGIN ========== */
-        #login-screen {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, #1e2a38 0%, #2c3e50 40%, #1a252f 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 20px;
-        }
-        .login-card {
-            width: 100%;
-            max-width: 420px;
-            background: #fff;
-            border-radius: 18px;
-            padding: 36px 28px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-            animation: loginFadeIn 0.4s ease;
-        }
-        @keyframes loginFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .login-card .login-icon {
-            width: 56px;
-            height: 56px;
-            background: var(--color-primary-light);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            font-size: 1.6rem;
-            color: var(--color-primary);
-        }
-        .login-card h5 {
-            font-weight: 700;
-            color: var(--color-secondary);
-            margin-bottom: 4px;
-        }
-        .login-card .login-sub {
-            font-size: 0.9rem;
-            color: var(--color-text-muted);
-            margin-bottom: 20px;
-        }
-        .login-card .form-control {
-            border-radius: 10px;
-            padding: 10px 14px;
-            border: 1.5px solid var(--color-border);
-            transition: var(--transition);
-            font-size: 0.95rem;
-        }
-        .login-card .form-control:focus {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(240, 123, 38, 0.1);
-        }
-        .login-card .btn-primary {
-            border-radius: 10px;
-            padding: 11px;
-            font-weight: 600;
-            font-size: 1rem;
-            background: var(--color-primary);
-            border: none;
-            letter-spacing: 0.3px;
-        }
-        .login-card .btn-primary:hover {
-            background: var(--color-primary-hover);
-        }
-        .login-card .form-label {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--color-secondary);
-            margin-bottom: 4px;
-        }
+    /* Filtros */
+    .btn-group .btn {
+      font-size: 0.82rem; padding: 6px 14px; border-radius: 10px;
+      margin: 0 2px; border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
+    }
+    .btn-group .btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 
-        .app-hidden {
-            display: none !important;
-        }
-
-        /* ========== NAVBAR ========== */
-        .navbar {
-            background: var(--color-secondary);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-            min-height: 56px;
-            padding: 0 12px;
-        }
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.15rem;
-            letter-spacing: 0.3px;
-            color: #fff !important;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .navbar-brand i {
-            color: var(--color-primary);
-            font-size: 1.3rem;
-        }
-        .navbar-toggler {
-            border: none;
-            padding: 6px 10px;
-            border-radius: 10px;
-            color: #fff;
-        }
-        .navbar-toggler:focus {
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-            outline: none;
-        }
-        .navbar .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            font-weight: 500;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin: 2px 2px;
-            transition: var(--transition);
-            font-size: 0.92rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .navbar .nav-link:hover {
-            color: #fff !important;
-            background: rgba(255, 255, 255, 0.08);
-        }
-        .navbar .nav-link.active {
-            color: #fff !important;
-            background: rgba(240, 123, 38, 0.25) !important;
-            font-weight: 600;
-        }
-        .navbar .nav-link i {
-            font-size: 0.9rem;
-            width: 18px;
-            text-align: center;
-        }
-        #current-user-display {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-right: 8px;
-        }
-        #logout-btn {
-            border-radius: 10px;
-            padding: 6px 14px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            border: 1.5px solid rgba(255, 255, 255, 0.4);
-            color: #fff;
-            background: transparent;
-            transition: var(--transition);
-        }
-        #logout-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #fff;
-        }
-
-        @media (max-width: 991px) {
-            .navbar .navbar-collapse {
-                background: var(--color-secondary-light);
-                border-radius: 12px;
-                padding: 8px;
-                margin-top: 8px;
-                box-shadow: var(--shadow-lg);
-            }
-            .navbar .nav-link {
-                padding: 12px 14px;
-                border-radius: 10px;
-            }
-            #current-user-display {
-                margin: 6px 0;
-            }
-            #logout-btn {
-                width: 100%;
-                margin-top: 4px;
-            }
-            .navbar .d-flex.align-items-center {
-                flex-direction: column;
-                align-items: flex-start !important;
-                gap: 6px;
-                padding: 6px 0;
-            }
-        }
-
-        /* ========== LAYOUT PRINCIPAL ========== */
-        main {
-            padding: 16px 12px 40px;
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-        .page {
-            display: none;
-            animation: pageFadeIn 0.3s ease;
-        }
-        .page.active {
-            display: block;
-        }
-        @keyframes pageFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ========== TARJETAS ========== */
-        .card {
-            border: none;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            background: var(--color-card);
-            transition: var(--transition);
-            overflow: hidden;
-        }
-        .card:hover {
-            box-shadow: var(--shadow-lg);
-        }
-        .card .card-body,
-        .card.p-3 {
-            padding: 20px;
-        }
-        @media (max-width: 576px) {
-            .card .card-body,
-            .card.p-3 {
-                padding: 14px;
-            }
-        }
-
-        /* ========== BOTONES GENERALES ========== */
-        .btn {
-            border-radius: 10px;
-            font-weight: 500;
-            transition: var(--transition);
-            font-size: 0.9rem;
-            padding: 8px 16px;
-            letter-spacing: 0.2px;
-        }
-        .btn-primary {
-            background-color: var(--color-primary);
-            border-color: var(--color-primary);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background-color: var(--color-primary-hover);
-            border-color: var(--color-primary-hover);
-            transform: translateY(-1px);
-        }
-        .btn-success {
-            background-color: var(--color-success);
-            border-color: var(--color-success);
-        }
-        .btn-outline-secondary {
-            border-color: #cbd5e1;
-            color: #475569;
-        }
-        .btn-outline-secondary:hover {
-            background: #f1f5f9;
-            color: #1e293b;
-        }
-        .btn-outline-light {
-            border-color: rgba(255, 255, 255, 0.5);
-            color: #fff;
-        }
-        .btn-sm {
-            padding: 5px 12px;
-            font-size: 0.82rem;
-            border-radius: 8px;
-        }
-
-        /* ========== TABLAS ========== */
-        .table {
-            border-radius: var(--border-radius-sm);
-            overflow: hidden;
-            box-shadow: var(--shadow-sm);
-            background: #fff;
-            margin-bottom: 0;
-            font-size: 0.9rem;
-        }
-        .table thead th {
-            background-color: var(--color-secondary);
-            color: #fff;
-            font-weight: 600;
-            font-size: 0.82rem;
-            letter-spacing: 0.3px;
-            border: none;
-            padding: 12px 14px;
-            white-space: nowrap;
-        }
-        .table tbody td {
-            vertical-align: middle;
-            padding: 11px 14px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .table tbody tr {
-            transition: background 0.15s ease;
-        }
-        .table tbody tr:hover {
-            background-color: #fafbfc;
-        }
-        .table-responsive {
-            border-radius: var(--border-radius-sm);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* ========== BADGES ========== */
-        .badge {
-            font-weight: 500;
-            font-size: 0.78rem;
-            padding: 5px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.2px;
-        }
-        .badge.bg-success {
-            background-color: #d1fae5 !important;
-            color: #065f46 !important;
-        }
-        .badge.bg-danger {
-            background-color: #fee2e2 !important;
-            color: #991b1b !important;
-        }
-        .badge.bg-warning {
-            background-color: #fff3cd !important;
-            color: #856404 !important;
-        }
-
-        /* ========== FILTROS ========== */
-        .btn-group .btn {
-            font-size: 0.82rem;
-            padding: 7px 14px;
-            border-radius: 10px;
-            margin: 0 2px;
-            border: 1.5px solid #e2e8f0;
-            color: #475569;
-            background: #fff;
-            font-weight: 500;
-        }
-        .btn-group .btn.active {
-            background: var(--color-primary);
-            color: #fff;
-            border-color: var(--color-primary);
-            font-weight: 600;
-        }
-        .btn-group .btn:first-child {
-            border-radius: 10px 0 0 10px;
-        }
-        .btn-group .btn:last-child {
-            border-radius: 0 10px 10px 0;
-        }
-        .btn-group .btn:not(:first-child):not(:last-child) {
-            border-radius: 0;
-        }
-
-        /* ========== BÚSQUEDA ========== */
-        .search-box {
-            position: relative;
-        }
-        .search-box .form-control {
-            border-radius: 10px;
-            padding: 9px 38px 9px 14px;
-            border: 1.5px solid #e2e8f0;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-        .search-box .form-control:focus {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(240, 123, 38, 0.08);
-        }
-        .search-box .clear-search {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #94a3b8;
-            font-size: 0.9rem;
-            padding: 4px 8px;
-            border-radius: 50%;
-            transition: var(--transition);
-            z-index: 2;
-        }
-        .search-box .clear-search:hover {
-            color: #475569;
-            background: #f1f5f9;
-        }
-
-        /* ========== SCANNER ========== */
-        #reader {
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            min-height: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #reader video {
-            max-width: 100%;
-            border-radius: 12px;
-        }
-        .scan-result-panel {
-            min-height: 70px;
-            border-radius: 12px;
-            animation: fadeInUp 0.3s ease;
-        }
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ========== CONEXIÓN BADGE ========== */
-        .connection-badge {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 999;
-            font-size: 0.75rem;
-            padding: 7px 14px;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            font-weight: 500;
-            letter-spacing: 0.3px;
-            pointer-events: none;
-        }
-        @media (max-width: 576px) {
-            .connection-badge {
-                bottom: 12px;
-                right: 10px;
-                font-size: 0.7rem;
-                padding: 5px 10px;
-            }
-        }
-
-        /* ========== FOOTER ========== */
-        .app-footer {
-            background: var(--color-secondary);
-            color: #94a3b8;
-            font-size: 0.8rem;
-            padding: 16px 0;
-            text-align: center;
-            margin-top: 40px;
-            letter-spacing: 0.2px;
-        }
-
-        /* ========== MODAL ========== */
-        .modal-content {
-            border-radius: 16px;
-            border: none;
-            box-shadow: var(--shadow-lg);
-        }
-        .modal-header {
-            border-bottom: 1px solid #f1f5f9;
-            padding: 16px 20px;
-        }
-        .modal-header .modal-title {
-            font-weight: 700;
-            font-size: 1.05rem;
-        }
-        .modal-body {
-            padding: 20px;
-        }
-        .modal-footer {
-            border-top: 1px solid #f1f5f9;
-            padding: 14px 20px;
-        }
-        .qr-modal-body {
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-        .qr-modal-body canvas,
-        .qr-modal-body img {
-            border-radius: 12px;
-        }
-
-        /* ========== FORMULARIOS ========== */
-        .form-control,
-        .form-select {
-            border-radius: 10px;
-            padding: 9px 14px;
-            border: 1.5px solid #e2e8f0;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-        .form-control:focus,
-        .form-select:focus {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(240, 123, 38, 0.08);
-        }
-        .form-label {
-            font-weight: 600;
-            font-size: 0.82rem;
-            color: #475569;
-            margin-bottom: 4px;
-            letter-spacing: 0.2px;
-        }
-
-        /* ========== UTILIDADES ========== */
-        h2.fw-bold,
-        h3.fw-bold {
-            font-weight: 700;
-            letter-spacing: -0.3px;
-        }
-        h2.fw-bold {
-            font-size: 1.4rem;
-        }
-        h3.fw-bold {
-            font-size: 1.2rem;
-        }
-        @media (max-width: 576px) {
-            h2.fw-bold {
-                font-size: 1.2rem;
-            }
-            h3.fw-bold {
-                font-size: 1.05rem;
-            }
-        }
-        code {
-            background: #f8fafc;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            color: #334155;
-            border: 1px solid #e2e8f0;
-            word-break: break-all;
-        }
-        hr {
-            border-color: #e2e8f0;
-            opacity: 0.7;
-            margin: 24px 0;
-        }
-    </style>
+    .connection-badge {
+      position: fixed; bottom: 16px; right: 16px; z-index: 999;
+      font-size: 0.75rem; padding: 6px 12px; border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .app-footer {
+      background: var(--color-secondary); color: #94a3b8;
+      font-size: 0.8rem; padding: 14px 0; text-align: center; margin-top: 30px;
+    }
+  </style>
 </head>
 <body>
-
-    <!-- Pantalla de login -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="login-icon"><i class="fas fa-hard-hat"></i></div>
-            <h5 class="text-center">Insumos Sucor</h5>
-            <p class="text-center login-sub">Control de inventario interno</p>
-            <form id="login-form">
-                <div class="mb-3">
-                    <label for="login-username" class="form-label">Usuario</label>
-                    <input type="text" class="form-control" id="login-username" placeholder="Ingresa tu usuario" required autocomplete="off">
-                </div>
-                <div class="mb-3">
-                    <label for="login-password" class="form-label">Contraseña</label>
-                    <input type="password" class="form-control" id="login-password" placeholder="••••••" required autocomplete="off">
-                </div>
-                <div id="login-error" class="text-danger small mb-2" style="display:none;">
-                    <i class="fas fa-exclamation-circle me-1"></i> Usuario o contraseña incorrectos.
-                </div>
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-arrow-right-to-bracket me-2"></i> Ingresar
-                </button>
-            </form>
+  <!-- Pantalla de login -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-icon"><i class="fas fa-hard-hat"></i></div>
+      <h5 class="text-center fw-bold mb-1">Insumos Sucor</h5>
+      <p class="text-center text-muted small mb-3">Control de inventario interno</p>
+      <form id="login-form">
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Usuario</label>
+          <input type="text" class="form-control" id="login-username" placeholder="Tu usuario" required autocomplete="off">
         </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Contraseña</label>
+          <input type="password" class="form-control" id="login-password" placeholder="••••••" required autocomplete="off">
+        </div>
+        <div id="login-error" class="text-danger small mb-2" style="display:none;">
+          <i class="fas fa-exclamation-circle"></i> Usuario o contraseña incorrectos.
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-arrow-right-to-bracket me-2"></i>Ingresar</button>
+      </form>
     </div>
+  </div>
 
-    <!-- Contenido principal -->
-    <div id="app-container" class="app-hidden">
-        <!-- Barra de navegación -->
-        <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-            <div class="container-fluid">
-                <span class="navbar-brand">
-                    <i class="fas fa-hard-hat"></i> Insumos Sucor
-                </span>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <button class="nav-link page-link active" data-page="scan">
-                            <i class="fas fa-qrcode"></i> Escanear
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link page-link" data-page="history">
-                            <i class="fas fa-history"></i> Historial
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link page-link" data-page="add">
-                            <i class="fas fa-plus-circle"></i> Agregar
-                        </button>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <span id="current-user-display">
-                        <i class="fas fa-user-circle"></i>
-                        <span id="username-label"></span>
-                    </span>
-                    <button id="logout-btn" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-sign-out-alt me-1"></i> Salir
-                    </button>
-                </div>
-            </div>
+  <!-- Aplicación -->
+  <div id="app-container" class="app-hidden">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+      <div class="container-fluid">
+        <span class="navbar-brand"><i class="fas fa-hard-hat"></i> Insumos Sucor</span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item"><button class="nav-link page-link active" data-page="scan" data-bs-dismiss="collapse"><i class="fas fa-qrcode"></i> Escanear</button></li>
+            <li class="nav-item"><button class="nav-link page-link" data-page="history" data-bs-dismiss="collapse"><i class="fas fa-history"></i> Historial</button></li>
+            <li class="nav-item"><button class="nav-link page-link" data-page="add" data-bs-dismiss="collapse"><i class="fas fa-plus-circle"></i> Agregar</button></li>
+          </ul>
+          <div class="d-flex align-items-center">
+            <span id="current-user-display" class="text-white me-2 small"><i class="fas fa-user-circle me-1"></i><span id="username-label"></span></span>
+            <button id="logout-btn" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i> Salir</button>
+          </div>
         </div>
+      </div>
     </nav>
 
     <main>
-        <!-- Página Escanear -->
-        <div id="page-scan" class="page active">
-            <div class="mb-4">
-                <h2 class="fw-bold">
-                    <i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida
-                </h2>
-                <p class="text-muted small mb-0">
-                    Escanea un código QR o ingrésalo manualmente. El estado alterna automáticamente:
-                    <span class="badge bg-success">Disponible</span> ↔ <span class="badge bg-danger">Tomado</span>
-                </p>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-lg-6">
-                    <div class="card p-3">
-                        <div id="reader" class="mb-3"></div>
-                        <div class="d-grid gap-2">
-                            <button id="start-scan-btn" class="btn btn-primary" data-bs-toggle="tooltip" title="Usar cámara trasera">
-                                <i class="fas fa-camera me-2"></i> Iniciar Cámara
-                            </button>
-                            <button id="stop-scan-btn" class="btn btn-outline-secondary" disabled>
-                                <i class="fas fa-stop me-2"></i> Detener Cámara
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card p-3 h-100 d-flex flex-column">
-                        <h5 class="fw-semibold mb-3"><i class="fas fa-keyboard me-2"></i>Ingreso Manual</h5>
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" id="manual-code" placeholder="Ej: PROD-001">
-                            <button class="btn btn-primary" id="manual-submit">
-                                <i class="fas fa-check me-1"></i> Registrar
-                            </button>
-                        </div>
-                        <small class="text-muted">Pega el código o escríbelo directamente.</small>
-                        <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <hr>
-            <h3 class="fw-bold mb-3">
-                <i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual
-            </h3>
-
-            <!-- Filtros y búsqueda -->
-            <div class="row g-2 mb-3 align-items-center">
-                <div class="col-md-6">
-                    <div class="btn-group flex-wrap" role="group">
-                        <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all">
-                            <i class="fas fa-list me-1"></i> Todos
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary scan-filter-btn" data-filter="available">
-                            <i class="fas fa-check-circle me-1"></i> Disponibles
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary scan-filter-btn" data-filter="taken">
-                            <i class="fas fa-truck me-1"></i> Tomados
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="search-box">
-                        <input type="text" class="form-control" id="search-input" placeholder="Buscar por código o nombre...">
-                        <i class="fas fa-times clear-search" id="clear-search-btn" style="display:none;"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" id="scan-inventory-table">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Nombre</th>
-                            <th>Estado</th>
-                            <th style="min-width:180px;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+      <!-- Página Escanear -->
+      <div id="page-scan" class="page active">
+        <div class="mb-3">
+          <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
+          <p class="text-muted small">Escanea o ingresa un código. El estado cambia automáticamente: <span class="badge bg-success">Disponible</span> ↔ <span class="badge bg-danger">Tomado</span></p>
         </div>
 
-        <!-- Página Historial -->
-        <div id="page-history" class="page">
-            <h2 class="fw-bold mb-3">
-                <i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos
-            </h2>
-            <div class="table-responsive">
-                <table class="table table-hover" id="history-table">
-                    <thead>
-                        <tr>
-                            <th>Fecha y Hora</th>
-                            <th>Código</th>
-                            <th>Producto</th>
-                            <th>Acción</th>
-                            <th>Usuario</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+        <div class="row g-3 mb-4">
+          <div class="col-lg-6">
+            <div class="card p-3">
+              <div id="reader" class="mb-3" style="min-height:220px; background:#000; border-radius:12px;"></div>
+              <button id="start-scan-btn" class="btn btn-primary w-100 mb-2"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
+              <button id="stop-scan-btn" class="btn btn-outline-secondary w-100" disabled><i class="fas fa-stop me-2"></i>Detener</button>
             </div>
-            <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-3">
-                <i class="fas fa-trash-alt me-1"></i> Limpiar historial
-            </button>
+          </div>
+          <div class="col-lg-6">
+            <div class="card p-3 h-100">
+              <h5 class="fw-semibold"><i class="fas fa-keyboard me-2"></i>Ingreso Manual</h5>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" id="manual-code" placeholder="PROD-001">
+                <button class="btn btn-primary" id="manual-submit"><i class="fas fa-check"></i> Registrar</button>
+              </div>
+              <div id="scan-result" class="alert mt-3" style="display:none;"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- Página Agregar Producto -->
-        <div id="page-add" class="page">
-            <h2 class="fw-bold mb-3">
-                <i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Nuevo Producto
-            </h2>
-            <form id="add-product-form" class="row g-3 needs-validation" novalidate>
-                <div class="col-md-4">
-                    <label for="new-code" class="form-label">Código único</label>
-                    <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
-                    <div class="invalid-feedback">Ingresa un código.</div>
-                </div>
-                <div class="col-md-4">
-                    <label for="new-name" class="form-label">Nombre del producto</label>
-                    <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador de concreto" required>
-                    <div class="invalid-feedback">Ingresa un nombre.</div>
-                </div>
-                <div class="col-md-2">
-                    <label for="new-status" class="form-label">Estado inicial</label>
-                    <select class="form-select" id="new-status">
-                        <option value="available">Disponible</option>
-                        <option value="taken">Tomado</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="fas fa-save me-1"></i> Agregar
-                    </button>
-                </div>
-            </form>
-            <div class="mt-4">
-                <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm">
-                    <i class="fas fa-sync-alt me-1"></i> Reiniciar datos de demostración
-                </button>
+        <hr>
+        <h3 class="fw-bold mb-3"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <div class="btn-group">
+              <button class="btn btn-outline-secondary scan-filter-btn active" data-filter="all">Todos</button>
+              <button class="btn btn-outline-secondary scan-filter-btn" data-filter="available">Disponibles</button>
+              <button class="btn btn-outline-secondary scan-filter-btn" data-filter="taken">Tomados</button>
             </div>
+          </div>
+          <div class="col-md-6">
+            <div class="search-box position-relative">
+              <input type="text" class="form-control" id="search-input" placeholder="Buscar código o nombre...">
+              <i class="fas fa-times clear-search position-absolute top-50 end-0 translate-middle-y me-2 text-muted" id="clear-search-btn" style="display:none; cursor:pointer;"></i>
+            </div>
+          </div>
         </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle" id="scan-inventory-table">
+            <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th style="min-width:170px;">Acciones</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Página Historial -->
+      <div id="page-history" class="page">
+        <h2 class="fw-bold mb-3"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
+        <div class="table-responsive">
+          <table class="table table-hover" id="history-table">
+            <thead><tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th><th>Usuario</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-3"><i class="fas fa-trash-alt"></i> Limpiar historial</button>
+      </div>
+
+      <!-- Página Agregar -->
+      <div id="page-add" class="page">
+        <h2 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto</h2>
+        <form id="add-product-form" class="row g-3" novalidate>
+          <div class="col-md-4">
+            <label class="form-label">Código único</label>
+            <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Estado inicial</label>
+            <select class="form-select" id="new-status">
+              <option value="available">Disponible</option>
+              <option value="taken">Tomado</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Agregar</button>
+          </div>
+        </form>
+        <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm mt-4"><i class="fas fa-sync-alt"></i> Reiniciar datos demo</button>
+      </div>
     </main>
 
-    <!-- Modal Confirmación -->
-    <div class="modal fade" id="confirmToggleModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirmar cambio</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body" id="confirmToggleBody"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="confirmToggleBtn">Confirmar</button>
-                </div>
-            </div>
+    <div id="connection-badge" class="connection-badge badge bg-secondary"><i class="fas fa-circle-notch fa-spin me-1"></i> Conectando...</div>
+    <footer class="app-footer">© 2025 Insumos Sucor · Control de inventario interno</footer>
+  </div>
+
+  <!-- Modales -->
+  <div class="modal fade" id="confirmToggleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Confirmar cambio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body" id="confirmToggleBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="confirmToggleBtn">Confirmar</button>
         </div>
+      </div>
     </div>
-
-    <!-- Modal QR -->
-    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Código QR</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body qr-modal-body" id="qr-modal-body"></div>
-            </div>
-        </div>
+  </div>
+  <div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Código QR</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body d-flex justify-content-center" id="qr-modal-body"></div>
+      </div>
     </div>
+  </div>
 
-    <!-- Indicador de conexión -->
-    <div id="connection-badge" class="connection-badge badge bg-secondary">
-        <i class="fas fa-circle-notch fa-spin me-1"></i> Conectando...
-    </div>
-
-    <!-- Footer -->
-    <footer class="app-footer">
-        <div class="container">
-            <span>© 2025 Insumos Sucor · Control de inventario interno</span>
-        </div>
-    </footer>
-</div>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-</script>
-
-<!-- Firebase SDK -->
-<script type="module">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from
-    "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
-        authDomain: "insumos-sucor.firebaseapp.com",
-        databaseURL: "https://insumos-sucor-default-rtdb.firebaseio.com",
-        projectId: "insumos-sucor",
-        storageBucket: "insumos-sucor.firebasestorage.app",
-        messagingSenderId: "1027969662494",
-        appId: "1:1027969662494:web:6193effa98d8fb3b23780f",
-        measurementId: "G-MDM695J62C"
+      apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
+      authDomain: "insumos-sucor.firebaseapp.com",
+      databaseURL: "https://insumos-sucor-default-rtdb.firebaseio.com",
+      projectId: "insumos-sucor",
+      storageBucket: "insumos-sucor.firebasestorage.app",
+      messagingSenderId: "1027969662494",
+      appId: "1:1027969662494:web:6193effa98d8fb3b23780f",
+      measurementId: "G-MDM695J62C"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const productsRef = ref(db, 'productos');
@@ -901,69 +325,51 @@
     let appInitialized = false;
 
     const validUsers = {
-        pedro: "123456",
-        luis: "123456",
-        leo: "123456",
-        klaudia: "123456",
-        pabla: "123456"
+      pedro: "123456", luis: "123456", leo: "123456", klaudia: "123456", pabla: "123456"
     };
 
     const DEMO_PRODUCTS = [
-        { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
-        { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
-        { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", status: "available" },
-        { code: "22KVA", name: "Concox GT06N", status: "available" },
-        { code: "111-GSW15P-2622368", name: "Concox GT06N", status: "available" },
-        { code: "112-GSW15Y-2670398", name: "Concox GT06N", status: "available" },
-        { code: "113-GSW22P-2677872", name: "Concox JM-VL03", status: "available" },
-        { code: "114-GSW22P-2675692", name: "Concox GT06N", status: "available" },
-        { code: "115-25KVA-5763919", name: "Coban GPS303-C", status: "available" },
-        { code: "116-25KVA-5783893", name: "Eelink TK418", status: "available" },
-        { code: "117-35KVA-3911640", name: "Concox GT06N", status: "available" },
-        { code: "118-35KVA-3911639", name: "Concox JM-VL03", status: "available" },
-        { code: "119-35KVA-3889657", name: "Concox GT06N", status: "available" },
-        { code: "122-GSW30-2677188", name: "Concox GT06N", status: "available" },
-        { code: "125-GPW45-2678664", name: "Concox JM-VL03", status: "available" },
-        { code: "127-GSW80P-2670415", name: "Concox JM-VL03", status: "available" },
-        { code: "130-GSW110P-0006943", name: "Concox GT06N", status: "available" },
-        { code: "131-3366PRO212", name: "Concox JM-VL03", status: "available" },
-        { code: "133-1391PRO2V15", name: "Concox JM-VL03", status: "available" },
-        { code: "135-7000662", name: "Gosafe G1C", status: "available" },
-        { code: "136-7001074", name: "Coban GPS303-C", status: "available" },
-        { code: "137-7001077", name: "Coban GPS303-C", status: "available" },
-        { code: "138-7001086", name: "Gosafe G1C", status: "available" },
-        { code: "139-7001088", name: "Concox JM-VL03", status: "available" },
-        { code: "140-7001971", name: "Gosafe G1C", status: "available" },
-        { code: "141-7001972", name: "Gosafe G1C", status: "available" },
-        { code: "142-7001986", name: "Gosafe G1C", status: "available" },
-        { code: "143-7002348", name: "Concox GT06N", status: "available" },
-        { code: "144-7002578", name: "Coban GPS303-C", status: "available" },
-        { code: "145-7002580", name: "Concox GT06N", status: "available" },
-        { code: "146-7002195", name: "Concox GT06N", status: "available" },
-        { code: "147-7000676", name: "Concox GT06N", status: "available" },
-        { code: "148-7002219", name: "Concox GT06N", status: "available" },
-        { code: "150-BMP-8500 33006", name: "Gosafe G1C", status: "available" },
-        { code: "151-BMP-8500 32300", name: "Concox JM-VL03", status: "available" },
-        { code: "152-BMP-8500 33071", name: "Gosafe G1C", status: "available" },
-        { code: "153-BMP-8500 33062", name: "Gosafe G1C", status: "available" },
-        { code: "154-ARR1575", name: "Eelink TK418", status: "available" },
-        { code: "BGVG-16", name: "Concox GT06N", status: "available" },
-        { code: "BOBCAT S70 18334", name: "Gosafe G1C", status: "available" },
-        { code: "BOBCAT S70-18766", name: "Gosafe G1C", status: "available" },
-        { code: "CAT-200", name: "Teltonika FMC920", status: "available" },
-        { code: "JJXL-29", name: "Concox GT06N", status: "available" },
-        { code: "M50-1368", name: "Gosafe G1C", status: "available" },
-        { code: "M57-2010", name: "Eelink TK418", status: "available" },
-        { code: "MALO", name: "Concox GT06N", status: "available" },
-        { code: "Np300", name: "Teltonika FMC920", status: "available" },
-        { code: "Np300 Pruebas", name: "Concox GT06N", status: "available" },
-        { code: "RWVS-85", name: "Teltonika FMC920", status: "available" },
-        { code: "SULLAIR 375-0082", name: "Gosafe G1C", status: "available" },
-        { code: "TYJP-37", name: "Teltonika FMC920", status: "available" },
-        { code: "VPPL-79", name: "Teltonika FMC920", status: "available" }
+      { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
+      { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
+      { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", status: "available" },
+      { code: "22KVA", name: "Concox GT06N", status: "available" },
+      { code: "111-GSW15P-2622368", name: "Concox GT06N", status: "available" },
+      { code: "112-GSW15Y-2670398", name: "Concox GT06N", status: "available" },
+      { code: "113-GSW22P-2677872", name: "Concox JM-VL03", status: "available" },
+      { code: "114-GSW22P-2675692", name: "Concox GT06N", status: "available" },
+      { code: "115-25KVA-5763919", name: "Coban GPS303-C", status: "available" },
+      { code: "116-25KVA-5783893", name: "Eelink TK418", status: "available" },
+      { code: "117-35KVA-3911640", name: "Concox GT06N", status: "available" },
+      { code: "118-35KVA-3911639", name: "Concox JM-VL03", status: "available" },
+      { code: "119-35KVA-3889657", name: "Concox GT06N", status: "available" },
+      { code: "122-GSW30-2677188", name: "Concox GT06N", status: "available" },
+      { code: "125-GPW45-2678664", name: "Concox JM-VL03", status: "available" },
+      { code: "127-GSW80P-2670415", name: "Concox JM-VL03", status: "available" },
+      { code: "130-GSW110P-0006943", name: "Concox GT06N", status: "available" },
+      { code: "131-3366PRO212", name: "Concox JM-VL03", status: "available" },
+      { code: "133-1391PRO2V15", name: "Concox JM-VL03", status: "available" },
+      { code: "135-7000662", name: "Gosafe G1C", status: "available" },
+      { code: "136-7001074", name: "Coban GPS303-C", status: "available" },
+      { code: "137-7001077", name: "Coban GPS303-C", status: "available" },
+      { code: "138-7001086", name: "Gosafe G1C", status: "available" },
+      { code: "139-7001088", name: "Concox JM-VL03", status: "available" },
+      { code: "140-7001971", name: "Gosafe G1C", status: "available" },
+      { code: "141-7001972", name: "Gosafe G1C", status: "available" },
+      { code: "142-7001986", name: "Gosafe G1C", status: "available" },
+      { code: "143-7002348", name: "Concox GT06N", status: "available" },
+      { code: "144-7002578", name: "Coban GPS303-C", status: "available" },
+      { code: "145-7002580", name: "Concox GT06N", status: "available" },
+      { code: "146-7002195", name: "Concox GT06N", status: "available" },
+      { code: "147-7000676", name: "Concox GT06N", status: "available" },
+      { code: "148-7002219", name: "Concox GT06N", status: "available" },
+      { code: "150-BMP-8500 33006", name: "Gosafe G1C", status: "available" },
+      { code: "151-BMP-8500 32300", name: "Concox JM-VL03", status: "available" },
+      { code: "152-BMP-8500 33071", name: "Gosafe G1C", status: "available" },
+      { code: "153-BMP-8500 33062", name: "Gosafe G1C", status: "available" },
+      { code: "154-ARR1575", name: "Eelink TK418", status: "available" }
     ];
 
-    // ---------- LÓGICA DE LOGIN ----------
+    // ---------- LOGIN ----------
     const loginScreen = document.getElementById('login-screen');
     const appContainer = document.getElementById('app-container');
     const loginForm = document.getElementById('login-form');
@@ -974,444 +380,279 @@
     const logoutBtn = document.getElementById('logout-btn');
 
     function checkLogin() {
-        const storedUser = localStorage.getItem('currentUser');
-        if (storedUser && validUsers.hasOwnProperty(storedUser.toLowerCase())) {
-            currentUser = storedUser;
-            showApp();
-        } else {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            showLogin();
-        }
+      const stored = localStorage.getItem('currentUser');
+      if (stored && validUsers.hasOwnProperty(stored.toLowerCase())) {
+        currentUser = stored;
+        showApp();
+      } else {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        showLogin();
+      }
     }
 
     function showLogin() {
-        loginScreen.style.display = 'flex';
-        appContainer.classList.add('app-hidden');
-        if (appInitialized) {
-            if (window.stopScanner) window.stopScanner();
-            appInitialized = false;
-        }
+      loginScreen.style.display = 'flex';
+      appContainer.classList.add('app-hidden');
+      if (appInitialized && window.stopScanner) window.stopScanner();
+      appInitialized = false;
     }
 
     function showApp() {
-        loginScreen.style.display = 'none';
-        appContainer.classList.remove('app-hidden');
-        usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
-        if (!appInitialized) {
-            appInitialized = true;
-            initApp();
-        }
+      loginScreen.style.display = 'none';
+      appContainer.classList.remove('app-hidden');
+      usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+      if (!appInitialized) {
+        appInitialized = true;
+        initApp();
+      }
     }
 
     loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = usernameInput.value.trim().toLowerCase();
-        const password = passwordInput.value;
-        if (validUsers.hasOwnProperty(username) && validUsers[username] === password) {
-            currentUser = username;
-            localStorage.setItem('currentUser', currentUser);
-            loginError.style.display = 'none';
-            showApp();
-        } else {
-            loginError.style.display = 'block';
-        }
+      e.preventDefault();
+      const u = usernameInput.value.trim().toLowerCase();
+      const p = passwordInput.value;
+      if (validUsers.hasOwnProperty(u) && validUsers[u] === p) {
+        currentUser = u;
+        localStorage.setItem('currentUser', currentUser);
+        loginError.style.display = 'none';
+        showApp();
+      } else {
+        loginError.style.display = 'block';
+      }
     });
 
     logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        currentUser = null;
-        showLogin();
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      showLogin();
     });
 
     checkLogin();
 
-    // ---------- INICIALIZACIÓN DE LA APLICACIÓN ----------
+    // ---------- INICIALIZACIÓN ----------
     function initApp() {
-        window.stopScanner = function() {
-            if (window.html5QrCode && window.html5QrCode.isScanning) {
-                window.html5QrCode.stop().catch(() => {});
-            }
-        };
+      // Estado de conexión
+      const badge = document.getElementById('connection-badge');
+      onValue(ref(db, '.info/connected'), (snap) => {
+        const online = snap.val() === true;
+        badge.className = `connection-badge badge ${online ? 'bg-success' : 'bg-danger'}`;
+        badge.innerHTML = online ? '<i class="fas fa-link me-1"></i> En línea' : '<i class="fas fa-unlink me-1"></i> Sin conexión';
+      });
 
-        // Tooltips
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-
-        // Badge conexión
-        const connectionBadge = document.getElementById('connection-badge');
-
-        function setConnectionStatus(online) {
-            if (online) {
-                connectionBadge.className = 'connection-badge badge bg-success';
-                connectionBadge.innerHTML = '<i class="fas fa-link me-1"></i> En línea';
-            } else {
-                connectionBadge.className = 'connection-badge badge bg-danger';
-                connectionBadge.innerHTML = '<i class="fas fa-unlink me-1"></i> Sin conexión';
-            }
+      // Cargar productos
+      onValue(productsRef, (snapshot) => {
+        const data = snapshot.val();
+        products = data ? Object.values(data) : [];
+        if (products.length === 0) {
+          products = [...DEMO_PRODUCTS];
+          set(productsRef, products).catch(() => {});
         }
-        const connectedRef = ref(db, '.info/connected');
-        onValue(connectedRef, (snap) => {
-            setConnectionStatus(snap.val() === true);
+        renderScanInventory();
+      });
+
+      // Cargar transacciones
+      onValue(transactionsRef, (snapshot) => {
+        const data = snapshot.val();
+        transactions = data ? Object.values(data) : [];
+        transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (document.getElementById('page-history').classList.contains('active')) {
+          renderHistory();
+        }
+      });
+
+      // Navegación (sin cierre manual conflictivo)
+      const pages = document.querySelectorAll('.page');
+      const navLinks = document.querySelectorAll('.page-link');
+      window.showPage = (pageId) => {
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${pageId}`).classList.add('active');
+        navLinks.forEach(l => l.classList.remove('active'));
+        document.querySelector(`.page-link[data-page="${pageId}"]`)?.classList.add('active');
+        if (pageId === 'history') renderHistory();
+      };
+      navLinks.forEach(link => link.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.stopScanner) window.stopScanner();
+        window.showPage(link.dataset.page);
+      }));
+
+      // Iniciar escáner
+      initScanner();
+      window.showPage('scan');
+
+      // Filtros
+      document.querySelectorAll('.scan-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          renderScanInventory(this.dataset.filter, currentSearchText);
         });
+      });
 
-        // Escuchar productos
-        onValue(productsRef, (snapshot) => {
-            const data = snapshot.val();
-            products = data ? Object.values(data) : [];
-            if (products.length === 0) {
-                products = [...DEMO_PRODUCTS];
-                set(productsRef, products);
-            }
-            renderScanInventory();
-        });
+      // Búsqueda
+      const searchInput = document.getElementById('search-input');
+      const clearBtn = document.getElementById('clear-search-btn');
+      searchInput.addEventListener('input', () => {
+        clearBtn.style.display = searchInput.value ? 'block' : 'none';
+        renderScanInventory(currentScanFilter, searchInput.value);
+      });
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = ''; clearBtn.style.display = 'none';
+        renderScanInventory(currentScanFilter, '');
+      });
 
-        // Escuchar transacciones
-        onValue(transactionsRef, (snapshot) => {
-            const data = snapshot.val();
-            transactions = data ? Object.values(data) : [];
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-            if (document.getElementById('page-history').classList.contains('active')) {
-                renderHistory();
-            }
-        });
+      // Confirmar toggle
+      document.getElementById('confirmToggleBtn').addEventListener('click', () => {
+        if (pendingToggle) { manualToggle(pendingToggle); pendingToggle = null; bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide(); }
+      });
 
-        // Navegación
-        const pages = document.querySelectorAll('.page');
-        const navLinks = document.querySelectorAll('.page-link');
-        const navbarCollapse = document.getElementById('navbarNav');
-        const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapse);
+      // Limpiar historial
+      document.getElementById('clear-history-btn').addEventListener('click', () => {
+        if (confirm('¿Borrar todo el historial?')) { transactions = []; saveTransactions(); renderHistory(); }
+      });
 
-        window.showPage = function(pageId) {
-            pages.forEach(p => p.classList.remove('active'));
-            const targetPage = document.getElementById(`page-${pageId}`);
-            if (targetPage) targetPage.classList.add('active');
+      // Agregar producto
+      document.getElementById('add-product-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
+        const code = document.getElementById('new-code').value.trim().toUpperCase();
+        const name = document.getElementById('new-name').value.trim();
+        const status = document.getElementById('new-status').value;
+        if (products.some(p => p.code === code)) { alert('Código existente.'); return; }
+        products.push({ code, name, status }); saveProducts();
+        this.reset(); this.classList.remove('was-validated');
+      });
 
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.dataset.page === pageId) link.classList.add('active');
-            });
-
-            if (pageId === 'history') renderHistory();
-            if (pageId === 'scan') {
-                const scanResult = document.getElementById('scan-result');
-                if (scanResult) scanResult.style.display = 'none';
-            }
-
-            // Cerrar menú colapsable en móvil
-            if (navbarCollapse && navbarCollapse._isShown()) {
-                bsCollapse.hide();
-            }
-        };
-
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.stopScanner();
-                window.showPage(link.dataset.page);
-            });
-        });
-
-        // Inicializar escáner
-        initScanner();
-
-        // Mostrar página inicial
-        window.showPage('scan');
-
-        // Filtros de inventario
-        document.querySelectorAll('.scan-filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove(
-                    'active'));
-                this.classList.add('active');
-                renderScanInventory(this.dataset.filter, currentSearchText);
-            });
-        });
-
-        // Búsqueda
-        const searchInput = document.getElementById('search-input');
-        const clearSearchBtn = document.getElementById('clear-search-btn');
-        searchInput.addEventListener('input', function() {
-            const text = this.value;
-            clearSearchBtn.style.display = text ? 'block' : 'none';
-            renderScanInventory(currentScanFilter, text);
-        });
-        clearSearchBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            clearSearchBtn.style.display = 'none';
-            renderScanInventory(currentScanFilter, '');
-            searchInput.focus();
-        });
-
-        // Confirmar cambio manual
-        document.getElementById('confirmToggleBtn').addEventListener('click', () => {
-            if (pendingToggle) {
-                manualToggle(pendingToggle);
-                pendingToggle = null;
-                bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
-            }
-        });
-
-        // Limpiar historial
-        document.getElementById('clear-history-btn').addEventListener('click', () => {
-            if (confirm('¿Borrar todo el historial de movimientos?')) {
-                transactions = [];
-                saveTransactions();
-                renderHistory();
-            }
-        });
-
-        // Agregar producto
-        const form = document.getElementById('add-product-form');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (!form.checkValidity()) {
-                e.stopPropagation();
-                form.classList.add('was-validated');
-                return;
-            }
-            const code = document.getElementById('new-code').value.trim().toUpperCase();
-            const name = document.getElementById('new-name').value.trim();
-            const status = document.getElementById('new-status').value;
-            if (products.some(p => p.code === code)) {
-                alert('El código ya existe en el inventario.');
-                return;
-            }
-            products.push({ code, name, status });
-            saveProducts();
-            alert(`Producto "${name}" agregado correctamente.`);
-            form.reset();
-            form.classList.remove('was-validated');
-            renderScanInventory();
-        });
-
-        // Reiniciar demo
-        document.getElementById('reset-demo-btn').addEventListener('click', () => {
-            if (confirm('¿Reemplazar todos los productos con los datos de demostración? El historial se conservará.')) {
-                products = [...DEMO_PRODUCTS];
-                saveProducts();
-                renderScanInventory();
-            }
-        });
+      // Reiniciar demo
+      document.getElementById('reset-demo-btn').addEventListener('click', () => {
+        if (confirm('¿Reemplazar con datos demo?')) { products = [...DEMO_PRODUCTS]; saveProducts(); }
+      });
     }
 
-    // ---------- FUNCIONES GLOBALES ----------
-    function saveProducts() { set(productsRef, products).catch(console.error); }
-
-    function saveTransactions() { set(transactionsRef, transactions).catch(console.error); }
-
-    let currentScanFilter = 'all';
-    let currentSearchText = '';
+    // ---------- FUNCIONES ----------
+    function saveProducts() { set(productsRef, products).catch(() => {}); }
+    function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
+    let currentScanFilter = 'all', currentSearchText = '';
 
     function renderScanInventory(filter = currentScanFilter, searchText = currentSearchText) {
-        currentScanFilter = filter;
-        currentSearchText = searchText;
-        const tbody = document.querySelector('#scan-inventory-table tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        let filtered = products.filter(p => {
-            if (filter === 'available') return p.status === 'available';
-            if (filter === 'taken') return p.status === 'taken';
-            return true;
-        });
-        if (searchText.trim() !== '') {
-            const term = searchText.trim().toLowerCase();
-            filtered = filtered.filter(p =>
-                p.code.toLowerCase().includes(term) || p.name.toLowerCase().includes(term)
-            );
-        }
-        if (filtered.length === 0) {
-            tbody.innerHTML =
-                '<tr><td colspan="4" class="text-center text-muted py-4">No se encontraron productos</td></tr>';
-            return;
-        }
-        filtered.forEach(p => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-            <td><code>${p.code}</code></td>
-            <td>${p.name}</td>
-            <td><span class="badge ${p.status === 'available' ? 'bg-success' : 'bg-danger'}">${p.status === 'available' ? 'Disponible' : 'Tomado'}</span></td>
-            <td>
-              <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}" data-bs-toggle="tooltip" title="Ver QR"><i class="fas fa-qrcode"></i></button>
-              <button class="btn btn-sm ${p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success'} toggle-btn" data-code="${p.code}" data-bs-toggle="tooltip" title="${p.status === 'available' ? 'Marcar como Tomado' : 'Marcar como Devuelto'}">
-                <i class="fas ${p.status === 'available' ? 'fa-arrow-right' : 'fa-undo-alt'} me-1"></i> ${p.status === 'available' ? 'Tomar' : 'Devolver'}
-              </button>
-            </td>`;
-            tbody.appendChild(tr);
-        });
-        document.querySelectorAll('#scan-inventory-table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap
-            .Tooltip(el));
-        document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => btn.addEventListener('click', () =>
-            showQrModal(btn.dataset.code)));
-        document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () =>
-            requestManualToggle(btn.dataset.code)));
+      currentScanFilter = filter; currentSearchText = searchText;
+      const tbody = document.querySelector('#scan-inventory-table tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      let list = products.filter(p => {
+        if (filter === 'available') return p.status === 'available';
+        if (filter === 'taken') return p.status === 'taken';
+        return true;
+      });
+      if (searchText.trim()) {
+        const s = searchText.trim().toLowerCase();
+        list = list.filter(p => p.code.toLowerCase().includes(s) || p.name.toLowerCase().includes(s));
+      }
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
+        return;
+      }
+      list.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><code>${p.code}</code></td><td>${p.name}</td>
+          <td><span class="badge ${p.status==='available'?'bg-success':'bg-danger'}">${p.status==='available'?'Disponible':'Tomado'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
+            <button class="btn btn-sm ${p.status==='available'?'btn-outline-danger':'btn-outline-success'} toggle-btn" data-code="${p.code}"><i class="fas ${p.status==='available'?'fa-arrow-right':'fa-undo-alt'} me-1"></i>${p.status==='available'?'Tomar':'Devolver'}</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(b => b.addEventListener('click', () => showQrModal(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(b => b.addEventListener('click', () => requestManualToggle(b.dataset.code)));
     }
 
     function showQrModal(code) {
-        document.getElementById('qr-modal-body').innerHTML = '';
-        new QRCode(document.getElementById('qr-modal-body'), {
-            text: code,
-            width: 220,
-            height: 220,
-            colorDark: "#1e2a38",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
-        new bootstrap.Modal(document.getElementById('qrModal')).show();
+      document.getElementById('qr-modal-body').innerHTML = '';
+      new QRCode(document.getElementById('qr-modal-body'), { text: code, width:200, height:200 });
+      new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
 
     function requestManualToggle(code) {
-        const product = products.find(p => p.code === code);
-        if (!product) return;
-        const newStatus = product.status === 'available' ? 'taken' : 'available';
-        const actionText = newStatus === 'taken' ? 'marcar como <strong>Tomado</strong>' :
-            'marcar como <strong>Devuelto</strong>';
-        document.getElementById('confirmToggleBody').innerHTML =
-            `¿Deseas ${actionText} el producto <strong>${product.name}</strong><br><code>${product.code}</code>?`;
-        pendingToggle = code;
-        new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
+      const p = products.find(x => x.code === code); if(!p) return;
+      document.getElementById('confirmToggleBody').innerHTML = `¿Cambiar estado de <strong>${p.name}</strong> (${p.code})?`;
+      pendingToggle = code;
+      new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
     }
 
     function manualToggle(code) {
-        const product = products.find(p => p.code === code);
-        if (!product) return;
-        toggleProductStatus(product);
+      const p = products.find(x => x.code === code); if(!p) return;
+      toggleProductStatus(p);
     }
 
     function toggleProductStatus(product) {
-        const oldStatus = product.status;
-        const newStatus = oldStatus === 'available' ? 'taken' : 'available';
-        product.status = newStatus;
-        const index = products.findIndex(p => p.code === product.code);
-        if (index !== -1) products[index] = product;
-        saveProducts();
-
-        const transaction = {
-            date: new Date().toISOString(),
-            code: product.code,
-            name: product.name,
-            action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)',
-            user: currentUser ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1) : 'Sistema'
-        };
-        transactions.unshift(transaction);
-        saveTransactions();
-
-        const alertDiv = document.getElementById('scan-result');
-        if (alertDiv) {
-            alertDiv.style.display = 'block';
-            alertDiv.className = `alert mt-3 scan-result-panel ${newStatus === 'taken' ? 'alert-warning' : 'alert-success'}`;
-            alertDiv.innerHTML = `
-            <i class="fas ${newStatus === 'taken' ? 'fa-arrow-right' : 'fa-undo-alt'} me-2"></i>
-            <strong>${product.name}</strong> <code>${product.code}</code><br>
-            <span class="badge ${newStatus === 'taken' ? 'bg-warning' : 'bg-success'}">${transaction.action}</span>
-            <small class="ms-2">· ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
-            <br><small class="text-muted">Usuario: ${transaction.user}</small>`;
-            alertDiv.style.animation = 'none';
-            alertDiv.offsetHeight;
-            alertDiv.style.animation = 'fadeInUp 0.3s ease';
-        }
-        renderScanInventory();
+      const newStatus = product.status === 'available' ? 'taken' : 'available';
+      product.status = newStatus;
+      saveProducts();
+      transactions.unshift({
+        date: new Date().toISOString(), code: product.code, name: product.name,
+        action: newStatus==='taken'?'Salida (Tomado)':'Entrada (Devuelto)',
+        user: currentUser.charAt(0).toUpperCase()+currentUser.slice(1)
+      });
+      saveTransactions();
+      const alertDiv = document.getElementById('scan-result');
+      if(alertDiv) {
+        alertDiv.style.display='block';
+        alertDiv.className = `alert mt-3 ${newStatus==='taken'?'alert-warning':'alert-success'}`;
+        alertDiv.innerHTML = `<i class="fas ${newStatus==='taken'?'fa-arrow-right':'fa-undo-alt'}"></i> <strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`;
+      }
+      renderScanInventory();
     }
 
     function renderHistory() {
-        const tbody = document.querySelector('#history-table tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (transactions.length === 0) {
-            tbody.innerHTML =
-                '<tr><td colspan="5" class="text-center text-muted py-4">Sin movimientos registrados</td></tr>';
-            return;
-        }
-        transactions.forEach(t => {
-            const fecha = new Date(t.date);
-            const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour: '2-digit',
-                minute: '2-digit' });
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-            <td>${fechaStr}</td>
-            <td><code>${t.code}</code></td>
-            <td>${t.name}</td>
-            <td><span class="badge ${t.action.includes('Salida') ? 'bg-warning' : 'bg-success'}">${t.action}</span></td>
-            <td>${t.user || 'Sistema'}</td>`;
-            tbody.appendChild(tr);
-        });
+      const tbody = document.querySelector('#history-table tbody');
+      if(!tbody) return;
+      tbody.innerHTML = transactions.length ? '' : '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos</td></tr>';
+      transactions.forEach(t => {
+        const d = new Date(t.date);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${d.toLocaleString('es-CL')}</td><td><code>${t.code}</code></td><td>${t.name}</td><td><span class="badge ${t.action.includes('Salida')?'bg-warning text-dark':'bg-success'}">${t.action}</span></td><td>${t.user}</td>`;
+        tbody.appendChild(tr);
+      });
     }
 
-    // Escáner QR
     function initScanner() {
-        const startBtn = document.getElementById('start-scan-btn');
-        const stopBtn = document.getElementById('stop-scan-btn');
-        const manualInput = document.getElementById('manual-code');
-        const manualSubmit = document.getElementById('manual-submit');
-        const scanResultDiv = document.getElementById('scan-result');
-
-        function onScanSuccess(decodedText) {
-            handleScanCode(decodedText);
-            if (window.html5QrCode && window.html5QrCode.isScanning) {
-                window.html5QrCode.stop().then(() => {
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                }).catch(() => {});
-            }
+      const startBtn = document.getElementById('start-scan-btn');
+      const stopBtn = document.getElementById('stop-scan-btn');
+      window.stopScanner = () => {
+        if (window.html5QrCode && window.html5QrCode.isScanning) {
+          window.html5QrCode.stop().then(() => { startBtn.disabled=false; stopBtn.disabled=true; }).catch(()=>{});
         }
-
-        function onScanFailure() {}
-
-        async function getBackCameraId() {
-            try {
-                const devices = await Html5Qrcode.getCameras();
-                if (!devices || devices.length === 0) return null;
-                for (const device of devices) {
-                    const label = device.label.toLowerCase();
-                    if (label.includes('back') || label.includes('rear') || label.includes('environment') || label
-                        .includes('trasera')) return device.id;
-                }
-                return devices[0].id;
-            } catch { return null; }
+      };
+      async function start() {
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if(!devices?.length) { alert('Sin cámara'); return; }
+          let camId = devices.find(d => d.label.toLowerCase().includes('back')||d.label.toLowerCase().includes('rear'))?.id || devices[0].id;
+          window.html5QrCode = new Html5Qrcode("reader");
+          await window.html5QrCode.start({ deviceId: camId }, { fps:10, qrbox:250 }, (text) => {
+            handleCode(text);
+            window.stopScanner();
+          }, ()=>{});
+          startBtn.disabled = true; stopBtn.disabled = false;
+        } catch(e) { alert('Error cámara: '+e.message); }
+      }
+      function handleCode(code) {
+        code = code.trim().toUpperCase();
+        const p = products.find(x => x.code === code);
+        const alertDiv = document.getElementById('scan-result');
+        if (!p) {
+          if(alertDiv) { alertDiv.style.display='block'; alertDiv.className='alert alert-danger mt-3'; alertDiv.innerHTML=`Código no registrado: <strong>${code}</strong>`; }
+          return;
         }
-
-        async function startScanner() {
-            try {
-                const cameraId = await getBackCameraId();
-                if (!cameraId) { alert("No se encontró una cámara disponible."); return; }
-                window.html5QrCode = new Html5Qrcode("reader");
-                await window.html5QrCode.start({ deviceId: cameraId }, { fps: 10, qrbox: { width: 250, height: 250 } },
-                    onScanSuccess, onScanFailure);
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-            } catch (err) { alert("Error al iniciar la cámara: " + err.message); }
-        }
-
-        window.stopScanner = function() {
-            if (window.html5QrCode && window.html5QrCode.isScanning) {
-                window.html5QrCode.stop().then(() => {
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                }).catch(() => {});
-            }
-        };
-
-        function handleScanCode(code) {
-            if (!code || code.trim() === '') return;
-            code = code.trim().toUpperCase();
-            const product = products.find(p => p.code === code);
-            if (!product) {
-                scanResultDiv.style.display = 'block';
-                scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
-                scanResultDiv.innerHTML =
-                    `<i class="fas fa-exclamation-circle me-2"></i> Código <strong>${code}</strong> no registrado en el inventario.`;
-                return;
-            }
-            toggleProductStatus(product);
-        }
-
-        startBtn.addEventListener('click', startScanner);
-        stopBtn.addEventListener('click', window.stopScanner);
-        manualSubmit.addEventListener('click', () => { handleScanCode(manualInput.value);
-            manualInput.value = ''; });
-        manualInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleScanCode(manualInput.value);
-                manualInput.value = ''; } });
+        toggleProductStatus(p);
+      }
+      startBtn.addEventListener('click', start);
+      stopBtn.addEventListener('click', window.stopScanner);
+      document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
+      document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
     }
-</script>
+  </script>
 </body>
 </html>
