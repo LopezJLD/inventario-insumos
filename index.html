@@ -317,7 +317,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, goOffline, goOnline } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -340,7 +340,7 @@
     // Estado
     let products = [];
     let transactions = [];
-    let pendingToggle = null; // para confirmación manual
+    let pendingToggle = null;
 
     // Tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -358,13 +358,68 @@
       }
     }
 
-    // Monitorear conexión Firebase
     const connectedRef = ref(db, '.info/connected');
     onValue(connectedRef, (snap) => {
       setConnectionStatus(snap.val() === true);
     });
 
-    // Escuchar datos
+    // Datos de ejemplo reales (GPS trackers y equipos)
+    const DEMO_PRODUCTS = [
+      { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
+      { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
+      { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", status: "available" },
+      { code: "22KVA", name: "Concox GT06N", status: "available" },
+      { code: "111-GSW15P-2622368", name: "Concox GT06N", status: "available" },
+      { code: "112-GSW15Y-2670398", name: "Concox GT06N", status: "available" },
+      { code: "113-GSW22P-2677872", name: "Concox JM-VL03", status: "available" },
+      { code: "114-GSW22P-2675692", name: "Concox GT06N", status: "available" },
+      { code: "115-25KVA-5763919", name: "Coban GPS303-C", status: "available" },
+      { code: "116-25KVA-5783893", name: "Eelink TK418", status: "available" },
+      { code: "117-35KVA-3911640", name: "Concox GT06N", status: "available" },
+      { code: "118-35KVA-3911639", name: "Concox JM-VL03", status: "available" },
+      { code: "119-35KVA-3889657", name: "Concox GT06N", status: "available" },
+      { code: "122-GSW30-2677188", name: "Concox GT06N", status: "available" },
+      { code: "125-GPW45-2678664", name: "Concox JM-VL03", status: "available" },
+      { code: "127-GSW80P-2670415", name: "Concox JM-VL03", status: "available" },
+      { code: "130-GSW110P-0006943", name: "Concox GT06N", status: "available" },
+      { code: "131-3366PRO212", name: "Concox JM-VL03", status: "available" },
+      { code: "133-1391PRO2V15", name: "Concox JM-VL03", status: "available" },
+      { code: "135-7000662", name: "Gosafe G1C", status: "available" },
+      { code: "136-7001074", name: "Coban GPS303-C", status: "available" },
+      { code: "137-7001077", name: "Coban GPS303-C", status: "available" },
+      { code: "138-7001086", name: "Gosafe G1C", status: "available" },
+      { code: "139-7001088", name: "Concox JM-VL03", status: "available" },
+      { code: "140-7001971", name: "Gosafe G1C", status: "available" },
+      { code: "141-7001972", name: "Gosafe G1C", status: "available" },
+      { code: "142-7001986", name: "Gosafe G1C", status: "available" },
+      { code: "143-7002348", name: "Concox GT06N", status: "available" },
+      { code: "144-7002578", name: "Coban GPS303-C", status: "available" },
+      { code: "145-7002580", name: "Concox GT06N", status: "available" },
+      { code: "146-7002195", name: "Concox GT06N", status: "available" },
+      { code: "147-7000676", name: "Concox GT06N", status: "available" },
+      { code: "148-7002219", name: "Concox GT06N", status: "available" },
+      { code: "150-BMP-8500 33006", name: "Gosafe G1C", status: "available" },
+      { code: "151-BMP-8500 32300", name: "Concox JM-VL03", status: "available" },
+      { code: "152-BMP-8500 33071", name: "Gosafe G1C", status: "available" },
+      { code: "153-BMP-8500 33062", name: "Gosafe G1C", status: "available" },
+      { code: "154-ARR1575", name: "Eelink TK418", status: "available" },
+      { code: "BGVG-16", name: "Concox GT06N", status: "available" },
+      { code: "BOBCAT S70 18334", name: "Gosafe G1C", status: "available" },
+      { code: "BOBCAT S70-18766", name: "Gosafe G1C", status: "available" },
+      { code: "CAT-200", name: "Teltonika FMC920", status: "available" },
+      { code: "JJXL-29", name: "Concox GT06N", status: "available" },
+      { code: "M50-1368", name: "Gosafe G1C", status: "available" },
+      { code: "M57-2010", name: "Eelink TK418", status: "available" },
+      { code: "MALO", name: "Concox GT06N", status: "available" },
+      { code: "Np300", name: "Teltonika FMC920", status: "available" },
+      { code: "Np300 Pruebas", name: "Concox GT06N", status: "available" },
+      { code: "RWVS-85", name: "Teltonika FMC920", status: "available" },
+      { code: "SULLAIR 375-0082", name: "Gosafe G1C", status: "available" },
+      { code: "TYJP-37", name: "Teltonika FMC920", status: "available" },
+      { code: "VPPL-79", name: "Teltonika FMC920", status: "available" }
+    ];
+
+    // Escuchar datos de Firebase
     onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       products = data ? Object.values(data) : [];
@@ -382,19 +437,6 @@
         renderHistory();
       }
     });
-
-    const DEMO_PRODUCTS = [
-      { code: "PROD-001", name: "Martillo demoledor", status: "available" },
-      { code: "PROD-002", name: "Andamio modular", status: "available" },
-      { code: "PROD-003", name: "Mezcladora de cemento", status: "available" },
-      { code: "PROD-004", name: "Cortadora de cerámica", status: "available" },
-      { code: "PROD-005", name: "Taladro percutor", status: "available" },
-      { code: "PROD-006", name: "Compresor de aire", status: "available" },
-      { code: "PROD-007", name: "Generador eléctrico", status: "available" },
-      { code: "PROD-008", name: "Rotomartillo SDS", status: "available" },
-      { code: "PROD-009", name: "Vibrador para concreto", status: "available" },
-      { code: "PROD-010", name: "Placa compactadora", status: "taken" }
-    ];
 
     function saveProducts() { set(productsRef, products).catch(console.error); }
     function saveTransactions() { set(transactionsRef, transactions).catch(console.error); }
@@ -451,7 +493,6 @@
         `;
         tbody.appendChild(tr);
       });
-      // Re-inicializar tooltips
       document.querySelectorAll('#scan-inventory-table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
       document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => btn.addEventListener('click', () => showQrModal(btn.dataset.code)));
       document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () => requestManualToggle(btn.dataset.code)));
@@ -475,7 +516,6 @@
       new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
 
-    // Confirmación manual
     function requestManualToggle(code) {
       const product = products.find(p => p.code === code);
       if (!product) return;
@@ -528,9 +568,8 @@
           <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
           <small class="ms-2">Estado: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
         `;
-        // Efecto de pulso
         alertDiv.style.animation = 'none';
-        alertDiv.offsetHeight; // reflow
+        alertDiv.offsetHeight;
         alertDiv.style.animation = 'fadeInUp 0.3s ease';
       }
       renderScanInventory();
@@ -663,7 +702,7 @@
       renderScanInventory();
     });
 
-    // Reiniciar demo
+    // Reiniciar demo (ahora con los GPS)
     document.getElementById('reset-demo-btn').addEventListener('click', () => {
       if (confirm('¿Reemplazar todos los productos con los datos de demostración?')) {
         products = DEMO_PRODUCTS;
@@ -675,7 +714,6 @@
       }
     });
 
-    // Inicializar página scan
     showPage('scan');
   </script>
 </body>
