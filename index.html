@@ -33,6 +33,7 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       padding-top: 70px;
       color: #333;
+      margin: 0;
     }
 
     /* Pantalla de login */
@@ -57,7 +58,7 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
     .app-hidden {
-      display: none;
+      display: none !important;
     }
 
     /* Barra de navegación */
@@ -418,13 +419,14 @@
     const productsRef = ref(db, 'productos');
     const transactionsRef = ref(db, 'transacciones');
 
-    // Estado
+    // Estado global
     let products = [];
     let transactions = [];
     let pendingToggle = null;
     let currentUser = null;
+    let appInitialized = false;
 
-    // ---------- LÓGICA DE LOGIN ----------
+    // Usuarios válidos
     const validUsers = {
       pedro: "123456",
       luis: "123456",
@@ -433,97 +435,7 @@
       pabla: "123456"
     };
 
-    const loginScreen = document.getElementById('login-screen');
-    const appContainer = document.getElementById('app-container');
-    const loginForm = document.getElementById('login-form');
-    const loginError = document.getElementById('login-error');
-    const usernameInput = document.getElementById('login-username');
-    const passwordInput = document.getElementById('login-password');
-    const usernameLabel = document.getElementById('username-label');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    function checkLogin() {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser && validUsers.hasOwnProperty(storedUser.toLowerCase())) {
-        currentUser = storedUser;
-        showApp();
-      } else {
-        currentUser = null;
-        localStorage.removeItem('currentUser');
-        showLogin();
-      }
-    }
-
-    function showLogin() {
-      loginScreen.style.display = 'flex';
-      appContainer.classList.add('app-hidden');
-    }
-
-    function showApp() {
-      loginScreen.style.display = 'none';
-      appContainer.classList.remove('app-hidden');
-      usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
-      // Inicializar la app si no se ha hecho
-      if (!window.appInitialized) {
-        window.appInitialized = true;
-        initApp();
-      }
-    }
-
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const username = usernameInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
-      if (validUsers.hasOwnProperty(username) && validUsers[username] === password) {
-        currentUser = username;
-        localStorage.setItem('currentUser', currentUser);
-        loginError.style.display = 'none';
-        showApp();
-      } else {
-        loginError.style.display = 'block';
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('currentUser');
-      currentUser = null;
-      // Detener cámara si está activa
-      if (typeof stopScanner === 'function') stopScanner();
-      // Limpiar variables de la app para reiniciar al volver a entrar
-      window.appInitialized = false;
-      showLogin();
-    });
-
-    // Al cargar la página verificar si ya hay sesión
-    checkLogin();
-    // Si no hay sesión, mostramos login y no inicializamos nada más
-    if (!currentUser) {
-      // No seguir con el resto del script
-      throw new Error("No autenticado"); // Detiene la ejecución del módulo
-    }
-
-    // Tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
-
-    // Badge conexión
-    const connectionBadge = document.getElementById('connection-badge');
-    function setConnectionStatus(online) {
-      if (online) {
-        connectionBadge.className = 'connection-badge badge bg-success';
-        connectionBadge.innerHTML = '<i class="fas fa-link me-1"></i> En línea';
-      } else {
-        connectionBadge.className = 'connection-badge badge bg-danger';
-        connectionBadge.innerHTML = '<i class="fas fa-unlink me-1"></i> Desconectado';
-      }
-    }
-
-    const connectedRef = ref(db, '.info/connected');
-    onValue(connectedRef, (snap) => {
-      setConnectionStatus(snap.val() === true);
-    });
-
-    // Datos de ejemplo (GPS trackers y equipos)
+    // Datos de ejemplo
     const DEMO_PRODUCTS = [
       { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
       { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
@@ -579,8 +491,95 @@
       { code: "VPPL-79", name: "Teltonika FMC920", status: "available" }
     ];
 
+    // ---------- LÓGICA DE LOGIN ----------
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    const usernameLabel = document.getElementById('username-label');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    function checkLogin() {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser && validUsers.hasOwnProperty(storedUser.toLowerCase())) {
+        currentUser = storedUser;
+        showApp();
+      } else {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      appContainer.classList.add('app-hidden');
+      if (appInitialized) {
+        // Si ya estaba inicializado, detener cámara y resetear
+        stopScanner();
+        appInitialized = false;
+      }
+    }
+
+    function showApp() {
+      loginScreen.style.display = 'none';
+      appContainer.classList.remove('app-hidden');
+      usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+      if (!appInitialized) {
+        appInitialized = true;
+        initApp();
+      }
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+      if (validUsers.hasOwnProperty(username) && validUsers[username] === password) {
+        currentUser = username;
+        localStorage.setItem('currentUser', currentUser);
+        loginError.style.display = 'none';
+        showApp();
+      } else {
+        loginError.style.display = 'block';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      showLogin();
+    });
+
+    // Verificar sesión al cargar
+    checkLogin();
+
+    // ---------- INICIALIZACIÓN DE LA APLICACIÓN ----------
     function initApp() {
-      // Escuchar datos de Firebase
+      // Tooltips (ahora el DOM está disponible)
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
+
+      // Badge conexión
+      const connectionBadge = document.getElementById('connection-badge');
+      function setConnectionStatus(online) {
+        if (online) {
+          connectionBadge.className = 'connection-badge badge bg-success';
+          connectionBadge.innerHTML = '<i class="fas fa-link me-1"></i> En línea';
+        } else {
+          connectionBadge.className = 'connection-badge badge bg-danger';
+          connectionBadge.innerHTML = '<i class="fas fa-unlink me-1"></i> Desconectado';
+        }
+      }
+
+      const connectedRef = ref(db, '.info/connected');
+      onValue(connectedRef, (snap) => {
+        setConnectionStatus(snap.val() === true);
+      });
+
+      // Escuchar productos
       onValue(productsRef, (snapshot) => {
         const data = snapshot.val();
         products = data ? Object.values(data) : [];
@@ -591,6 +590,7 @@
         renderScanInventory();
       });
 
+      // Escuchar transacciones
       onValue(transactionsRef, (snapshot) => {
         const data = snapshot.val();
         transactions = data ? Object.values(data) : [];
@@ -620,14 +620,92 @@
         });
       });
 
-      // Inicializar página scan
+      // Iniciar en página scan
       showPage('scan');
+
+      // Configurar filtros de inventario
+      document.querySelectorAll('.scan-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          renderScanInventory(this.dataset.filter, currentSearchText);
+        });
+      });
+
+      // Búsqueda
+      const searchInput = document.getElementById('search-input');
+      const clearSearchBtn = document.getElementById('clear-search-btn');
+      searchInput.addEventListener('input', function() {
+        const text = this.value;
+        clearSearchBtn.style.display = text ? 'block' : 'none';
+        renderScanInventory(currentScanFilter, text);
+      });
+      clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        renderScanInventory(currentScanFilter, '');
+        searchInput.focus();
+      });
+
+      // Confirmar cambio manual
+      document.getElementById('confirmToggleBtn').addEventListener('click', () => {
+        if (pendingToggle) {
+          manualToggle(pendingToggle);
+          pendingToggle = null;
+          bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
+        }
+      });
+
+      // Escáner QR
+      initScanner();
+
+      // Botón limpiar historial
+      document.getElementById('clear-history-btn').addEventListener('click', () => {
+        if (confirm('¿Borrar todo el historial?')) {
+          transactions = [];
+          saveTransactions();
+          renderHistory();
+        }
+      });
+
+      // Agregar producto
+      const form = document.getElementById('add-product-form');
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          e.stopPropagation();
+          form.classList.add('was-validated');
+          return;
+        }
+        const code = document.getElementById('new-code').value.trim().toUpperCase();
+        const name = document.getElementById('new-name').value.trim();
+        const status = document.getElementById('new-status').value;
+        if (products.some(p => p.code === code)) {
+          alert('El código ya existe.');
+          return;
+        }
+        products.push({ code, name, status });
+        saveProducts();
+        alert(`Producto "${name}" agregado.`);
+        form.reset();
+        form.classList.remove('was-validated');
+        renderScanInventory();
+      });
+
+      // Reiniciar demo
+      document.getElementById('reset-demo-btn').addEventListener('click', () => {
+        if (confirm('¿Reemplazar todos los productos con los datos de demostración? El historial se conservará.')) {
+          products = DEMO_PRODUCTS;
+          saveProducts();
+          renderScanInventory();
+        }
+      });
     }
 
+    // ---------- FUNCIONES GLOBALES ----------
     function saveProducts() { set(productsRef, products).catch(console.error); }
     function saveTransactions() { set(transactionsRef, transactions).catch(console.error); }
 
-    // Inventario con búsqueda
     let currentScanFilter = 'all';
     let currentSearchText = '';
 
@@ -679,33 +757,6 @@
       document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () => requestManualToggle(btn.dataset.code)));
     }
 
-    // Manejo de filtros
-    document.querySelectorAll('.scan-filter-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        renderScanInventory(this.dataset.filter, currentSearchText);
-      });
-    });
-
-    // Búsqueda
-    const searchInput = document.getElementById('search-input');
-    const clearSearchBtn = document.getElementById('clear-search-btn');
-
-    searchInput.addEventListener('input', function() {
-      const text = this.value;
-      clearSearchBtn.style.display = text ? 'block' : 'none';
-      renderScanInventory(currentScanFilter, text);
-    });
-
-    clearSearchBtn.addEventListener('click', function() {
-      searchInput.value = '';
-      clearSearchBtn.style.display = 'none';
-      renderScanInventory(currentScanFilter, '');
-      searchInput.focus();
-    });
-
-    // Modal QR
     function showQrModal(code) {
       document.getElementById('qr-modal-body').innerHTML = '';
       new QRCode(document.getElementById('qr-modal-body'), {
@@ -716,7 +767,6 @@
       new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
 
-    // Confirmación manual
     function requestManualToggle(code) {
       const product = products.find(p => p.code === code);
       if (!product) return;
@@ -727,14 +777,6 @@
       const modal = new bootstrap.Modal(document.getElementById('confirmToggleModal'));
       modal.show();
     }
-
-    document.getElementById('confirmToggleBtn').addEventListener('click', () => {
-      if (pendingToggle) {
-        manualToggle(pendingToggle);
-        pendingToggle = null;
-        bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
-      }
-    });
 
     function manualToggle(code) {
       const product = products.find(p => p.code === code);
@@ -778,82 +820,9 @@
       renderScanInventory();
     }
 
-    // Escáner QR
-    let html5QrCode;
-    const startBtn = document.getElementById('start-scan-btn');
-    const stopBtn = document.getElementById('stop-scan-btn');
-    const manualInput = document.getElementById('manual-code');
-    const manualSubmit = document.getElementById('manual-submit');
-    const scanResultDiv = document.getElementById('scan-result');
-
-    function onScanSuccess(decodedText) {
-      handleScanCode(decodedText);
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
-        }).catch(() => {});
-      }
-    }
-    function onScanFailure(error) {}
-
-    async function getBackCameraId() {
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (!devices || devices.length === 0) return null;
-        for (let device of devices) {
-          const label = device.label.toLowerCase();
-          if (label.includes('back') || label.includes('rear') || label.includes('environment')) return device.id;
-        }
-        return devices[0].id;
-      } catch { return null; }
-    }
-
-    async function startScanner() {
-      try {
-        const cameraId = await getBackCameraId();
-        if (!cameraId) { alert("No se encontró cámara trasera."); return; }
-        html5QrCode = new Html5Qrcode("reader");
-        await html5QrCode.start(
-          { deviceId: cameraId },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          onScanSuccess, onScanFailure
-        );
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (err) { alert("Error al iniciar cámara: " + err.message); }
-    }
-
-    function stopScanner() {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
-        }).catch(() => {});
-      }
-    }
-
-    function handleScanCode(code) {
-      if (!code || code.trim() === '') return;
-      code = code.trim().toUpperCase();
-      const product = products.find(p => p.code === code);
-      if (!product) {
-        scanResultDiv.style.display = 'block';
-        scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
-        scanResultDiv.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i> Código <strong>${code}</strong> no registrado.`;
-        return;
-      }
-      toggleProductStatus(product);
-    }
-
-    startBtn.addEventListener('click', startScanner);
-    stopBtn.addEventListener('click', stopScanner);
-    manualSubmit.addEventListener('click', () => { handleScanCode(manualInput.value); manualInput.value = ''; });
-    manualInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleScanCode(manualInput.value); manualInput.value = ''; } });
-
-    // Historial
     function renderHistory() {
       const tbody = document.querySelector('#history-table tbody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       if (transactions.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>';
@@ -874,49 +843,82 @@
       });
     }
 
-    document.getElementById('clear-history-btn').addEventListener('click', () => {
-      if (confirm('¿Borrar todo el historial?')) {
-        transactions = [];
-        saveTransactions();
-        renderHistory();
-      }
-    });
+    // Escáner QR (inicializado en initApp)
+    let html5QrCode;
+    function initScanner() {
+      const startBtn = document.getElementById('start-scan-btn');
+      const stopBtn = document.getElementById('stop-scan-btn');
+      const manualInput = document.getElementById('manual-code');
+      const manualSubmit = document.getElementById('manual-submit');
+      const scanResultDiv = document.getElementById('scan-result');
 
-    // Agregar producto
-    const form = document.getElementById('add-product-form');
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!form.checkValidity()) {
-        e.stopPropagation();
-        form.classList.add('was-validated');
-        return;
+      function onScanSuccess(decodedText) {
+        handleScanCode(decodedText);
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+          }).catch(() => {});
+        }
       }
-      const code = document.getElementById('new-code').value.trim().toUpperCase();
-      const name = document.getElementById('new-name').value.trim();
-      const status = document.getElementById('new-status').value;
-      if (products.some(p => p.code === code)) {
-        alert('El código ya existe.');
-        return;
-      }
-      products.push({ code, name, status });
-      saveProducts();
-      alert(`Producto "${name}" agregado.`);
-      form.reset();
-      form.classList.remove('was-validated');
-      renderScanInventory();
-    });
+      function onScanFailure(error) {}
 
-    // Reiniciar demo (mantiene historial, solo productos)
-    document.getElementById('reset-demo-btn').addEventListener('click', () => {
-      if (confirm('¿Reemplazar todos los productos con los datos de demostración? Esto no borrará el historial.')) {
-        products = DEMO_PRODUCTS;
-        saveProducts();
-        renderScanInventory();
-        // Ya no limpiamos transacciones aquí para conservar el historial
+      async function getBackCameraId() {
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (!devices || devices.length === 0) return null;
+          for (let device of devices) {
+            const label = device.label.toLowerCase();
+            if (label.includes('back') || label.includes('rear') || label.includes('environment')) return device.id;
+          }
+          return devices[0].id;
+        } catch { return null; }
       }
-    });
 
-    // Inicialización: ocurre automáticamente cuando showApp() se ejecuta después del login
+      async function startScanner() {
+        try {
+          const cameraId = await getBackCameraId();
+          if (!cameraId) { alert("No se encontró cámara trasera."); return; }
+          html5QrCode = new Html5Qrcode("reader");
+          await html5QrCode.start(
+            { deviceId: cameraId },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess, onScanFailure
+          );
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        } catch (err) { alert("Error al iniciar cámara: " + err.message); }
+      }
+
+      function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+          }).catch(() => {});
+        }
+      }
+
+      window.stopScanner = stopScanner; // para usarla globalmente
+
+      function handleScanCode(code) {
+        if (!code || code.trim() === '') return;
+        code = code.trim().toUpperCase();
+        const product = products.find(p => p.code === code);
+        if (!product) {
+          scanResultDiv.style.display = 'block';
+          scanResultDiv.className = 'alert alert-danger mt-3 scan-result-panel';
+          scanResultDiv.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i> Código <strong>${code}</strong> no registrado.`;
+          return;
+        }
+        toggleProductStatus(product);
+      }
+
+      startBtn.addEventListener('click', startScanner);
+      stopBtn.addEventListener('click', stopScanner);
+      manualSubmit.addEventListener('click', () => { handleScanCode(manualInput.value); manualInput.value = ''; });
+      manualInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleScanCode(manualInput.value); manualInput.value = ''; } });
+    }
   </script>
 </body>
 </html>
