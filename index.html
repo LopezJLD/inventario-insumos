@@ -518,7 +518,7 @@
       appContainer.classList.add('app-hidden');
       if (appInitialized) {
         // Si ya estaba inicializado, detener cámara y resetear
-        stopScanner();
+        if (window.stopScanner) window.stopScanner();
         appInitialized = false;
       }
     }
@@ -558,6 +558,13 @@
 
     // ---------- INICIALIZACIÓN DE LA APLICACIÓN ----------
     function initApp() {
+      // Función dummy para stopScanner hasta que se inicialice el escáner
+      window.stopScanner = function() {
+        if (window.html5QrCode && window.html5QrCode.isScanning) {
+          window.html5QrCode.stop().catch(() => {});
+        }
+      };
+
       // Tooltips (ahora el DOM está disponible)
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
@@ -594,6 +601,9 @@
       onValue(transactionsRef, (snapshot) => {
         const data = snapshot.val();
         transactions = data ? Object.values(data) : [];
+        // Ordenar por fecha descendente para el historial
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Renderizar historial solo si la página está activa
         if (document.getElementById('page-history').classList.contains('active')) {
           renderHistory();
         }
@@ -609,18 +619,25 @@
           link.classList.remove('active');
           if (link.dataset.page === pageId) link.classList.add('active');
         });
-        if (pageId === 'history') renderHistory();
-        if (pageId === 'scan') document.getElementById('scan-result').style.display = 'none';
+        if (pageId === 'history') {
+          renderHistory();
+        }
+        if (pageId === 'scan') {
+          document.getElementById('scan-result').style.display = 'none';
+        }
       };
       navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          stopScanner();
+          window.stopScanner();
           showPage(link.dataset.page);
         });
       });
 
-      // Iniciar en página scan
+      // Inicializar escáner (esto también define correctamente window.stopScanner)
+      initScanner();
+
+      // Ahora sí podemos mostrar la página inicial de forma segura
       showPage('scan');
 
       // Configurar filtros de inventario
@@ -655,9 +672,6 @@
           bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
         }
       });
-
-      // Escáner QR
-      initScanner();
 
       // Botón limpiar historial
       document.getElementById('clear-history-btn').addEventListener('click', () => {
@@ -828,6 +842,7 @@
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>';
         return;
       }
+      // El array ya viene ordenado por fecha descendente desde onValue
       transactions.forEach(t => {
         const fecha = new Date(t.date);
         const fechaStr = fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
@@ -844,7 +859,6 @@
     }
 
     // Escáner QR (inicializado en initApp)
-    let html5QrCode;
     function initScanner() {
       const startBtn = document.getElementById('start-scan-btn');
       const stopBtn = document.getElementById('stop-scan-btn');
@@ -854,8 +868,8 @@
 
       function onScanSuccess(decodedText) {
         handleScanCode(decodedText);
-        if (html5QrCode && html5QrCode.isScanning) {
-          html5QrCode.stop().then(() => {
+        if (window.html5QrCode && window.html5QrCode.isScanning) {
+          window.html5QrCode.stop().then(() => {
             startBtn.disabled = false;
             stopBtn.disabled = true;
           }).catch(() => {});
@@ -879,8 +893,8 @@
         try {
           const cameraId = await getBackCameraId();
           if (!cameraId) { alert("No se encontró cámara trasera."); return; }
-          html5QrCode = new Html5Qrcode("reader");
-          await html5QrCode.start(
+          window.html5QrCode = new Html5Qrcode("reader");
+          await window.html5QrCode.start(
             { deviceId: cameraId },
             { fps: 10, qrbox: { width: 250, height: 250 } },
             onScanSuccess, onScanFailure
@@ -890,16 +904,15 @@
         } catch (err) { alert("Error al iniciar cámara: " + err.message); }
       }
 
-      function stopScanner() {
-        if (html5QrCode && html5QrCode.isScanning) {
-          html5QrCode.stop().then(() => {
+      // Redefinir stopScanner global con la lógica real
+      window.stopScanner = function() {
+        if (window.html5QrCode && window.html5QrCode.isScanning) {
+          window.html5QrCode.stop().then(() => {
             startBtn.disabled = false;
             stopBtn.disabled = true;
           }).catch(() => {});
         }
-      }
-
-      window.stopScanner = stopScanner; // para usarla globalmente
+      };
 
       function handleScanCode(code) {
         if (!code || code.trim() === '') return;
@@ -915,7 +928,7 @@
       }
 
       startBtn.addEventListener('click', startScanner);
-      stopBtn.addEventListener('click', stopScanner);
+      stopBtn.addEventListener('click', window.stopScanner);
       manualSubmit.addEventListener('click', () => { handleScanCode(manualInput.value); manualInput.value = ''; });
       manualInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleScanCode(manualInput.value); manualInput.value = ''; } });
     }
