@@ -81,11 +81,39 @@
       border-radius: 10px; padding: 6px 14px; font-size: 0.85rem;
       border: 1.5px solid rgba(255,255,255,0.5); color: #fff; background: transparent;
     }
+
+    /* Menú colapsado centrado y espaciado */
     @media (max-width: 991px) {
       .navbar .navbar-collapse {
-        background: #2c3e50; border-radius: 12px; padding: 8px; margin-top: 8px;
+        background: #2c3e50;
+        border-radius: 12px;
+        padding: 12px 8px;
+        margin-top: 8px;
+        text-align: center;
       }
-      .navbar .nav-link { padding: 12px; }
+      .navbar .navbar-nav {
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+      }
+      .navbar .nav-link {
+        justify-content: center;
+        width: 90%;
+        margin: 4px 0;
+        padding: 12px;
+        font-size: 1rem;
+      }
+      .navbar .d-flex.align-items-center {
+        flex-direction: column;
+        align-items: center !important;
+        margin-top: 8px;
+      }
+      #logout-btn {
+        width: 90%;
+        margin: 4px 0;
+      }
     }
 
     /* Contenido principal */
@@ -163,14 +191,14 @@
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container-fluid">
         <span class="navbar-brand"><i class="fas fa-hard-hat"></i> Insumos Sucor</span>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú">
           <i class="fas fa-bars"></i>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
-            <li class="nav-item"><button class="nav-link page-link active" data-page="scan" data-bs-dismiss="collapse"><i class="fas fa-qrcode"></i> Escanear</button></li>
-            <li class="nav-item"><button class="nav-link page-link" data-page="history" data-bs-dismiss="collapse"><i class="fas fa-history"></i> Historial</button></li>
-            <li class="nav-item"><button class="nav-link page-link" data-page="add" data-bs-dismiss="collapse"><i class="fas fa-plus-circle"></i> Agregar</button></li>
+            <li class="nav-item"><button class="nav-link page-link active" data-page="scan"><i class="fas fa-qrcode"></i> Escanear</button></li>
+            <li class="nav-item"><button class="nav-link page-link" data-page="history"><i class="fas fa-history"></i> Historial</button></li>
+            <li class="nav-item"><button class="nav-link page-link" data-page="add"><i class="fas fa-plus-circle"></i> Agregar</button></li>
           </ul>
           <div class="d-flex align-items-center">
             <span id="current-user-display" class="text-white me-2 small"><i class="fas fa-user-circle me-1"></i><span id="username-label"></span></span>
@@ -461,21 +489,32 @@
         }
       });
 
-      // Navegación (sin cierre manual conflictivo)
+      // Navegación con cierre automático del menú colapsable
       const pages = document.querySelectorAll('.page');
       const navLinks = document.querySelectorAll('.page-link');
+      const navbarCollapse = document.getElementById('navbarNav');
+      const bsCollapse = navbarCollapse ? bootstrap.Collapse.getOrCreateInstance(navbarCollapse) : null;
+
       window.showPage = (pageId) => {
         pages.forEach(p => p.classList.remove('active'));
         document.getElementById(`page-${pageId}`).classList.add('active');
         navLinks.forEach(l => l.classList.remove('active'));
         document.querySelector(`.page-link[data-page="${pageId}"]`)?.classList.add('active');
         if (pageId === 'history') renderHistory();
+        
+        // Cerrar el menú colapsable si está abierto
+        if (bsCollapse && navbarCollapse.classList.contains('show')) {
+          bsCollapse.hide();
+        }
       };
-      navLinks.forEach(link => link.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (window.stopScanner) window.stopScanner();
-        window.showPage(link.dataset.page);
-      }));
+
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (window.stopScanner) window.stopScanner();
+          window.showPage(link.dataset.page);
+        });
+      });
 
       // Iniciar escáner
       initScanner();
