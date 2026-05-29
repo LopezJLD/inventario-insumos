@@ -155,6 +155,22 @@
       text-align: center;
     }
 
+    /* Búsqueda */
+    .search-box {
+      position: relative;
+    }
+    .search-box .clear-search {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #999;
+    }
+    .search-box .clear-search:hover {
+      color: #333;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .navbar-brand { font-size: 1.1rem; }
@@ -212,11 +228,24 @@
 
       <hr class="my-4">
       <h3 class="fw-bold"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
-      <div class="mb-3 btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all"><i class="fas fa-list me-1"></i> Todos</button>
-        <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available"><i class="fas fa-check-circle me-1"></i> Disponibles</button>
-        <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken"><i class="fas fa-truck me-1"></i> Tomados</button>
+      
+      <!-- Fila de filtros y búsqueda -->
+      <div class="row mb-3">
+        <div class="col-md-6 mb-2 mb-md-0">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all"><i class="fas fa-list me-1"></i> Todos</button>
+            <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available"><i class="fas fa-check-circle me-1"></i> Disponibles</button>
+            <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken"><i class="fas fa-truck me-1"></i> Tomados</button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="search-box">
+            <input type="text" class="form-control" id="search-input" placeholder="Buscar por código o nombre...">
+            <i class="fas fa-times clear-search" id="clear-search-btn" style="display:none;"></i>
+          </div>
+        </div>
       </div>
+
       <div class="table-responsive">
         <table class="table table-hover align-middle" id="scan-inventory-table">
           <thead>
@@ -363,7 +392,7 @@
       setConnectionStatus(snap.val() === true);
     });
 
-    // Datos de ejemplo reales (GPS trackers y equipos)
+    // Datos de ejemplo (GPS trackers y equipos)
     const DEMO_PRODUCTS = [
       { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
       { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
@@ -462,22 +491,39 @@
       });
     });
 
-    // Inventario
+    // Inventario con búsqueda
     let currentScanFilter = 'all';
-    function renderScanInventory(filter = currentScanFilter) {
+    let currentSearchText = '';
+
+    function renderScanInventory(filter = currentScanFilter, searchText = currentSearchText) {
       currentScanFilter = filter;
+      currentSearchText = searchText;
+
       const tbody = document.querySelector('#scan-inventory-table tbody');
       if (!tbody) return;
       tbody.innerHTML = '';
-      const filtered = products.filter(p => {
+
+      // Aplicar filtro de categoría
+      let filtered = products.filter(p => {
         if (filter === 'available') return p.status === 'available';
         if (filter === 'taken') return p.status === 'taken';
-        return true;
+        return true; // 'all'
       });
+
+      // Aplicar búsqueda por texto (código o nombre)
+      if (searchText.trim() !== '') {
+        const term = searchText.trim().toLowerCase();
+        filtered = filtered.filter(p => 
+          p.code.toLowerCase().includes(term) || 
+          p.name.toLowerCase().includes(term)
+        );
+      }
+
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
         return;
       }
+
       filtered.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -493,19 +539,40 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // Re-inicializar tooltips y eventos
       document.querySelectorAll('#scan-inventory-table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
       document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => btn.addEventListener('click', () => showQrModal(btn.dataset.code)));
       document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () => requestManualToggle(btn.dataset.code)));
     }
 
+    // Manejo de filtros por botones
     document.querySelectorAll('.scan-filter-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-        renderScanInventory(this.dataset.filter);
+        renderScanInventory(this.dataset.filter, currentSearchText);
       });
     });
 
+    // Búsqueda
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+
+    searchInput.addEventListener('input', function() {
+      const text = this.value;
+      clearSearchBtn.style.display = text ? 'block' : 'none';
+      renderScanInventory(currentScanFilter, text);
+    });
+
+    clearSearchBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      clearSearchBtn.style.display = 'none';
+      renderScanInventory(currentScanFilter, '');
+      searchInput.focus();
+    });
+
+    // Modal QR
     function showQrModal(code) {
       document.getElementById('qr-modal-body').innerHTML = '';
       new QRCode(document.getElementById('qr-modal-body'), {
@@ -516,6 +583,7 @@
       new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
 
+    // Confirmación manual
     function requestManualToggle(code) {
       const product = products.find(p => p.code === code);
       if (!product) return;
@@ -572,7 +640,7 @@
         alertDiv.offsetHeight;
         alertDiv.style.animation = 'fadeInUp 0.3s ease';
       }
-      renderScanInventory();
+      renderScanInventory(); // refresca respetando búsqueda actual
     }
 
     // Escáner QR
@@ -702,7 +770,7 @@
       renderScanInventory();
     });
 
-    // Reiniciar demo (ahora con los GPS)
+    // Reiniciar demo
     document.getElementById('reset-demo-btn').addEventListener('click', () => {
       if (confirm('¿Reemplazar todos los productos con los datos de demostración?')) {
         products = DEMO_PRODUCTS;
@@ -714,6 +782,7 @@
       }
     });
 
+    // Inicializar página scan
     showPage('scan');
   </script>
 </body>
