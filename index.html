@@ -35,6 +35,31 @@
       color: #333;
     }
 
+    /* Pantalla de login */
+    #login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .app-hidden {
+      display: none;
+    }
+
     /* Barra de navegación */
     .navbar {
       background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -178,168 +203,195 @@
   </style>
 </head>
 <body>
-  <!-- Barra de navegación -->
-  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-    <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1"><i class="fas fa-hard-hat me-2"></i>Insumos Sucor</span>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menú">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="scan"><i class="fas fa-qrcode me-1"></i> Escanear</button></li>
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history"><i class="fas fa-history me-1"></i> Historial</button></li>
-          <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add"><i class="fas fa-plus-circle me-1"></i> Agregar</button></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <main class="container-fluid mt-3">
-    <!-- Página Escanear (Principal) -->
-    <div id="page-scan" class="page active">
-      <div class="row mb-4">
-        <div class="col-12">
-          <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
-          <p class="text-muted">Escanea un código QR o ingrésalo manualmente. El estado cambiará automáticamente: <span class="badge bg-success">Disponible → Tomado</span> <span class="badge bg-danger">Tomado → Devuelto</span></p>
+  <!-- Pantalla de login -->
+  <div id="login-screen">
+    <div class="login-card">
+      <h4 class="text-center mb-3"><i class="fas fa-hard-hat me-2"></i>Insumos Sucor</h4>
+      <h5 class="text-center mb-4">Inicio de Sesión</h5>
+      <form id="login-form">
+        <div class="mb-3">
+          <label for="login-username" class="form-label">Usuario</label>
+          <input type="text" class="form-control" id="login-username" placeholder="Nombre de usuario" required autocomplete="off">
         </div>
-      </div>
-      
-      <div class="row g-4">
-        <div class="col-lg-6">
-          <div class="card p-3">
-            <div id="reader" class="mb-3"></div>
-            <button id="start-scan-btn" class="btn btn-primary w-100 mb-2" data-bs-toggle="tooltip" title="Usar cámara trasera"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
-            <button id="stop-scan-btn" class="btn btn-outline-secondary w-100" disabled><i class="fas fa-stop me-2"></i>Detener Cámara</button>
-          </div>
+        <div class="mb-3">
+          <label for="login-password" class="form-label">Contraseña</label>
+          <input type="password" class="form-control" id="login-password" placeholder="Contraseña" required autocomplete="off">
         </div>
-        <div class="col-lg-6">
-          <div class="card p-3 h-100">
-            <h5><i class="fas fa-keyboard me-2"></i>Ingreso Manual</h5>
-            <div class="input-group mb-3">
-              <input type="text" class="form-control" id="manual-code" placeholder="PROD-001">
-              <button class="btn btn-primary" id="manual-submit"><i class="fas fa-check me-1"></i> Registrar</button>
-            </div>
-            <small class="text-muted">Pega el código escaneado o escríbelo directamente.</small>
-            <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
-          </div>
-        </div>
-      </div>
-
-      <hr class="my-4">
-      <h3 class="fw-bold"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
-      
-      <!-- Fila de filtros y búsqueda -->
-      <div class="row mb-3">
-        <div class="col-md-6 mb-2 mb-md-0">
-          <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all"><i class="fas fa-list me-1"></i> Todos</button>
-            <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available"><i class="fas fa-check-circle me-1"></i> Disponibles</button>
-            <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken"><i class="fas fa-truck me-1"></i> Tomados</button>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="search-box">
-            <input type="text" class="form-control" id="search-input" placeholder="Buscar por código o nombre...">
-            <i class="fas fa-times clear-search" id="clear-search-btn" style="display:none;"></i>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-hover align-middle" id="scan-inventory-table">
-          <thead>
-            <tr><th>Código</th><th>Nombre</th><th>Estado</th><th style="min-width:200px;">Acciones</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Página Historial -->
-    <div id="page-history" class="page">
-      <h2 class="fw-bold"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
-      <div class="table-responsive">
-        <table class="table table-hover" id="history-table">
-          <thead>
-            <tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-2"><i class="fas fa-trash-alt me-1"></i> Limpiar historial</button>
-    </div>
-
-    <!-- Página Agregar Producto -->
-    <div id="page-add" class="page">
-      <h2 class="fw-bold"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Nuevo Producto</h2>
-      <form id="add-product-form" class="row g-3 needs-validation" novalidate>
-        <div class="col-md-4">
-          <label for="new-code" class="form-label">Código único</label>
-          <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
-          <div class="invalid-feedback">Ingresa un código.</div>
-        </div>
-        <div class="col-md-4">
-          <label for="new-name" class="form-label">Nombre del producto</label>
-          <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador de concreto" required>
-          <div class="invalid-feedback">Ingresa un nombre.</div>
-        </div>
-        <div class="col-md-2">
-          <label for="new-status" class="form-label">Estado inicial</label>
-          <select class="form-select" id="new-status">
-            <option value="available">Disponible</option>
-            <option value="taken">Tomado</option>
-          </select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save me-1"></i> Agregar</button>
-        </div>
+        <div id="login-error" class="text-danger mb-2" style="display:none;">Usuario o contraseña incorrectos.</div>
+        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
       </form>
-      <div class="mt-4">
-        <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm"><i class="fas fa-sync-alt me-1"></i> Reiniciar datos de demostración</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- Modal Confirmación cambio manual -->
-  <div class="modal fade" id="confirmToggleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Confirmar cambio</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body" id="confirmToggleBody"></div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="confirmToggleBtn">Confirmar</button>
-        </div>
-      </div>
     </div>
   </div>
 
-  <!-- Modal QR -->
-  <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Código QR del Producto</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+  <!-- Contenido principal (oculto hasta iniciar sesión) -->
+  <div id="app-container" class="app-hidden">
+    <!-- Barra de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+      <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1"><i class="fas fa-hard-hat me-2"></i>Insumos Sucor</span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menú">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item"><button class="nav-link btn btn-link text-white page-link active" data-page="scan"><i class="fas fa-qrcode me-1"></i> Escanear</button></li>
+            <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="history"><i class="fas fa-history me-1"></i> Historial</button></li>
+            <li class="nav-item"><button class="nav-link btn btn-link text-white page-link" data-page="add"><i class="fas fa-plus-circle me-1"></i> Agregar</button></li>
+          </ul>
+          <div class="d-flex align-items-center">
+            <span class="text-white me-2" id="current-user-display"><i class="fas fa-user me-1"></i> <span id="username-label"></span></span>
+            <button id="logout-btn" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt"></i></button>
+          </div>
         </div>
-        <div class="modal-body qr-modal-body" id="qr-modal-body"></div>
+      </div>
+    </nav>
+
+    <main class="container-fluid mt-3">
+      <!-- Página Escanear (Principal) -->
+      <div id="page-scan" class="page active">
+        <div class="row mb-4">
+          <div class="col-12">
+            <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
+            <p class="text-muted">Escanea un código QR o ingrésalo manualmente. El estado cambiará automáticamente: <span class="badge bg-success">Disponible → Tomado</span> <span class="badge bg-danger">Tomado → Devuelto</span></p>
+          </div>
+        </div>
+        
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card p-3">
+              <div id="reader" class="mb-3"></div>
+              <button id="start-scan-btn" class="btn btn-primary w-100 mb-2" data-bs-toggle="tooltip" title="Usar cámara trasera"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
+              <button id="stop-scan-btn" class="btn btn-outline-secondary w-100" disabled><i class="fas fa-stop me-2"></i>Detener Cámara</button>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card p-3 h-100">
+              <h5><i class="fas fa-keyboard me-2"></i>Ingreso Manual</h5>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" id="manual-code" placeholder="PROD-001">
+                <button class="btn btn-primary" id="manual-submit"><i class="fas fa-check me-1"></i> Registrar</button>
+              </div>
+              <small class="text-muted">Pega el código escaneado o escríbelo directamente.</small>
+              <div id="scan-result" class="alert mt-3 scan-result-panel" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+        <h3 class="fw-bold"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
+        
+        <!-- Fila de filtros y búsqueda -->
+        <div class="row mb-3">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-outline-secondary scan-filter-btn active" data-filter="all"><i class="fas fa-list me-1"></i> Todos</button>
+              <button type="button" class="btn btn-outline-success scan-filter-btn" data-filter="available"><i class="fas fa-check-circle me-1"></i> Disponibles</button>
+              <button type="button" class="btn btn-outline-danger scan-filter-btn" data-filter="taken"><i class="fas fa-truck me-1"></i> Tomados</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="search-box">
+              <input type="text" class="form-control" id="search-input" placeholder="Buscar por código o nombre...">
+              <i class="fas fa-times clear-search" id="clear-search-btn" style="display:none;"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle" id="scan-inventory-table">
+            <thead>
+              <tr><th>Código</th><th>Nombre</th><th>Estado</th><th style="min-width:200px;">Acciones</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Página Historial -->
+      <div id="page-history" class="page">
+        <h2 class="fw-bold"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
+        <div class="table-responsive">
+          <table class="table table-hover" id="history-table">
+            <thead>
+              <tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th><th>Usuario</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-2"><i class="fas fa-trash-alt me-1"></i> Limpiar historial</button>
+      </div>
+
+      <!-- Página Agregar Producto -->
+      <div id="page-add" class="page">
+        <h2 class="fw-bold"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Nuevo Producto</h2>
+        <form id="add-product-form" class="row g-3 needs-validation" novalidate>
+          <div class="col-md-4">
+            <label for="new-code" class="form-label">Código único</label>
+            <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
+            <div class="invalid-feedback">Ingresa un código.</div>
+          </div>
+          <div class="col-md-4">
+            <label for="new-name" class="form-label">Nombre del producto</label>
+            <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador de concreto" required>
+            <div class="invalid-feedback">Ingresa un nombre.</div>
+          </div>
+          <div class="col-md-2">
+            <label for="new-status" class="form-label">Estado inicial</label>
+            <select class="form-select" id="new-status">
+              <option value="available">Disponible</option>
+              <option value="taken">Tomado</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-success w-100"><i class="fas fa-save me-1"></i> Agregar</button>
+          </div>
+        </form>
+        <div class="mt-4">
+          <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm"><i class="fas fa-sync-alt me-1"></i> Reiniciar datos de demostración</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Modal Confirmación cambio manual -->
+    <div class="modal fade" id="confirmToggleModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmar cambio</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="confirmToggleBody"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="confirmToggleBtn">Confirmar</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Indicador de conexión -->
-  <div id="connection-badge" class="connection-badge badge bg-secondary"><i class="fas fa-circle-notch fa-spin me-1"></i> Conectando...</div>
-
-  <!-- Footer -->
-  <footer class="app-footer mt-5">
-    <div class="container">
-      <span>© 2025 Insumos Sucor - Control de inventario | Desarrollado para gestión interna</span>
+    <!-- Modal QR -->
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Código QR del Producto</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body qr-modal-body" id="qr-modal-body"></div>
+        </div>
+      </div>
     </div>
-  </footer>
+
+    <!-- Indicador de conexión -->
+    <div id="connection-badge" class="connection-badge badge bg-secondary"><i class="fas fa-circle-notch fa-spin me-1"></i> Conectando...</div>
+
+    <!-- Footer -->
+    <footer class="app-footer mt-5">
+      <div class="container">
+        <span>© 2025 Insumos Sucor - Control de inventario | Desarrollado para gestión interna</span>
+      </div>
+    </footer>
+  </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -370,6 +422,85 @@
     let products = [];
     let transactions = [];
     let pendingToggle = null;
+    let currentUser = null;
+
+    // ---------- LÓGICA DE LOGIN ----------
+    const validUsers = {
+      pedro: "123456",
+      luis: "123456",
+      leo: "123456",
+      klaudia: "123456",
+      pabla: "123456"
+    };
+
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    const usernameLabel = document.getElementById('username-label');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    function checkLogin() {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser && validUsers.hasOwnProperty(storedUser.toLowerCase())) {
+        currentUser = storedUser;
+        showApp();
+      } else {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      appContainer.classList.add('app-hidden');
+    }
+
+    function showApp() {
+      loginScreen.style.display = 'none';
+      appContainer.classList.remove('app-hidden');
+      usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+      // Inicializar la app si no se ha hecho
+      if (!window.appInitialized) {
+        window.appInitialized = true;
+        initApp();
+      }
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+      if (validUsers.hasOwnProperty(username) && validUsers[username] === password) {
+        currentUser = username;
+        localStorage.setItem('currentUser', currentUser);
+        loginError.style.display = 'none';
+        showApp();
+      } else {
+        loginError.style.display = 'block';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      // Detener cámara si está activa
+      if (typeof stopScanner === 'function') stopScanner();
+      // Limpiar variables de la app para reiniciar al volver a entrar
+      window.appInitialized = false;
+      showLogin();
+    });
+
+    // Al cargar la página verificar si ya hay sesión
+    checkLogin();
+    // Si no hay sesión, mostramos login y no inicializamos nada más
+    if (!currentUser) {
+      // No seguir con el resto del script
+      throw new Error("No autenticado"); // Detiene la ejecución del módulo
+    }
 
     // Tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -448,48 +579,53 @@
       { code: "VPPL-79", name: "Teltonika FMC920", status: "available" }
     ];
 
-    // Escuchar datos de Firebase
-    onValue(productsRef, (snapshot) => {
-      const data = snapshot.val();
-      products = data ? Object.values(data) : [];
-      if (products.length === 0) {
-        products = DEMO_PRODUCTS;
-        set(productsRef, products);
-      }
-      renderScanInventory();
-    });
+    function initApp() {
+      // Escuchar datos de Firebase
+      onValue(productsRef, (snapshot) => {
+        const data = snapshot.val();
+        products = data ? Object.values(data) : [];
+        if (products.length === 0) {
+          products = DEMO_PRODUCTS;
+          set(productsRef, products);
+        }
+        renderScanInventory();
+      });
 
-    onValue(transactionsRef, (snapshot) => {
-      const data = snapshot.val();
-      transactions = data ? Object.values(data) : [];
-      if (document.getElementById('page-history').classList.contains('active')) {
-        renderHistory();
-      }
-    });
+      onValue(transactionsRef, (snapshot) => {
+        const data = snapshot.val();
+        transactions = data ? Object.values(data) : [];
+        if (document.getElementById('page-history').classList.contains('active')) {
+          renderHistory();
+        }
+      });
+
+      // Navegación
+      const pages = document.querySelectorAll('.page');
+      const navLinks = document.querySelectorAll('.page-link');
+      window.showPage = function(pageId) {
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${pageId}`).classList.add('active');
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.dataset.page === pageId) link.classList.add('active');
+        });
+        if (pageId === 'history') renderHistory();
+        if (pageId === 'scan') document.getElementById('scan-result').style.display = 'none';
+      };
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          stopScanner();
+          showPage(link.dataset.page);
+        });
+      });
+
+      // Inicializar página scan
+      showPage('scan');
+    }
 
     function saveProducts() { set(productsRef, products).catch(console.error); }
     function saveTransactions() { set(transactionsRef, transactions).catch(console.error); }
-
-    // Navegación
-    const pages = document.querySelectorAll('.page');
-    const navLinks = document.querySelectorAll('.page-link');
-    function showPage(pageId) {
-      pages.forEach(p => p.classList.remove('active'));
-      document.getElementById(`page-${pageId}`).classList.add('active');
-      navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.dataset.page === pageId) link.classList.add('active');
-      });
-      if (pageId === 'history') renderHistory();
-      if (pageId === 'scan') document.getElementById('scan-result').style.display = 'none';
-    }
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        stopScanner();
-        showPage(link.dataset.page);
-      });
-    });
 
     // Inventario con búsqueda
     let currentScanFilter = 'all';
@@ -503,14 +639,12 @@
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      // Aplicar filtro de categoría
       let filtered = products.filter(p => {
         if (filter === 'available') return p.status === 'available';
         if (filter === 'taken') return p.status === 'taken';
-        return true; // 'all'
+        return true;
       });
 
-      // Aplicar búsqueda por texto (código o nombre)
       if (searchText.trim() !== '') {
         const term = searchText.trim().toLowerCase();
         filtered = filtered.filter(p => 
@@ -540,13 +674,12 @@
         tbody.appendChild(tr);
       });
 
-      // Re-inicializar tooltips y eventos
       document.querySelectorAll('#scan-inventory-table [data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
       document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(btn => btn.addEventListener('click', () => showQrModal(btn.dataset.code)));
       document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(btn => btn.addEventListener('click', () => requestManualToggle(btn.dataset.code)));
     }
 
-    // Manejo de filtros por botones
+    // Manejo de filtros
     document.querySelectorAll('.scan-filter-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
@@ -621,7 +754,8 @@
         date: new Date().toISOString(),
         code: product.code,
         name: product.name,
-        action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)'
+        action: newStatus === 'taken' ? 'Salida (Tomado)' : 'Entrada (Devuelto)',
+        user: currentUser ? currentUser.charAt(0).toUpperCase() + currentUser.slice(1) : 'Sistema'
       };
       transactions.unshift(transaction);
       saveTransactions();
@@ -635,12 +769,13 @@
           <strong>${product.name} (${product.code})</strong><br>
           <span class="badge ${newStatus === 'taken' ? 'bg-warning text-dark' : 'bg-success'}">${transaction.action}</span>
           <small class="ms-2">Estado: ${newStatus === 'available' ? 'Disponible' : 'Tomado'}</small>
+          <br><small>Usuario: ${transaction.user}</small>
         `;
         alertDiv.style.animation = 'none';
         alertDiv.offsetHeight;
         alertDiv.style.animation = 'fadeInUp 0.3s ease';
       }
-      renderScanInventory(); // refresca respetando búsqueda actual
+      renderScanInventory();
     }
 
     // Escáner QR
@@ -721,7 +856,7 @@
       const tbody = document.querySelector('#history-table tbody');
       tbody.innerHTML = '';
       if (transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>';
         return;
       }
       transactions.forEach(t => {
@@ -733,6 +868,7 @@
           <td><code>${t.code}</code></td>
           <td>${t.name}</td>
           <td><span class="badge ${t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success'}">${t.action}</span></td>
+          <td>${t.user || 'Sistema'}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -770,20 +906,17 @@
       renderScanInventory();
     });
 
-    // Reiniciar demo
+    // Reiniciar demo (mantiene historial, solo productos)
     document.getElementById('reset-demo-btn').addEventListener('click', () => {
-      if (confirm('¿Reemplazar todos los productos con los datos de demostración?')) {
+      if (confirm('¿Reemplazar todos los productos con los datos de demostración? Esto no borrará el historial.')) {
         products = DEMO_PRODUCTS;
         saveProducts();
-        transactions = [];
-        saveTransactions();
         renderScanInventory();
-        renderHistory();
+        // Ya no limpiamos transacciones aquí para conservar el historial
       }
     });
 
-    // Inicializar página scan
-    showPage('scan');
+    // Inicialización: ocurre automáticamente cuando showApp() se ejecuta después del login
   </script>
 </body>
 </html>
