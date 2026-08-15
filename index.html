@@ -12,8 +12,6 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --color-primary: #f07b26;
@@ -144,7 +142,6 @@
     .summary-card .value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
     .summary-card .label { font-size: 0.85rem; color: #64748b; }
 
-    /* Imagen miniatura */
     .product-thumb {
       width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 8px;
     }
@@ -390,13 +387,16 @@
       <div id="page-reports" class="page">
         <h2 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2" style="color:var(--color-primary);"></i>Reportes</h2>
         <div class="card p-3 mb-3">
-          <canvas id="movementsChart" height="100"></canvas>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover" id="report-table">
-            <thead><tr><th>Producto</th><th>Cantidad de Movimientos</th><th>Último Movimiento</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="table table-hover" id="report-table">
+              <thead><tr><th>Producto</th><th>Cantidad de Movimientos</th><th>Último Movimiento</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="mt-2">
+            <button id="export-report-csv" class="btn btn-outline-success btn-sm"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+            <button id="download-report-chart" class="btn btn-outline-primary btn-sm"><i class="fas fa-image"></i> Descargar Gráfico PNG</button>
+          </div>
         </div>
       </div>
     </main>
@@ -472,7 +472,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -530,6 +530,11 @@
       setupForm();
       setupButtons();
       window.showPage('scan');
+
+      // Asegurar que el menú colapsable esté cerrado al cargar
+      const navbarCollapse = document.getElementById('navbarNav');
+      const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapse);
+      bsCollapse.hide();
     }
 
     function setupNavigation() {
@@ -732,6 +737,8 @@
       document.getElementById('history-type-filter').addEventListener('change', renderHistory);
       document.getElementById('history-date-from').addEventListener('change', renderHistory);
       document.getElementById('history-date-to').addEventListener('change', renderHistory);
+      document.getElementById('export-report-csv').addEventListener('click', exportReportCSV);
+      document.getElementById('download-report-chart').addEventListener('click', downloadChartImage);
     }
 
     function toggleTypeFields() {
@@ -801,7 +808,6 @@
       if (editingCode) {
         const index = products.findIndex(p => p.code === editingCode);
         if (index > -1) {
-          // Mantener photo_url anterior si no se subió nueva
           if (!photo_url) product.photo_url = products[index].photo_url;
           products[index] = { ...products[index], ...product };
         }
@@ -919,24 +925,19 @@
       const area = document.getElementById('notifications-area');
       area.innerHTML = '';
       const lowStockItems = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity);
-      const longTaken = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to && isTakenTooLong(p));
+      const assignedItems = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to);
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-warning';
         alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Stock bajo:</strong> ${lowStockItems.map(p => p.name).join(', ')}`;
         area.appendChild(alertDiv);
       }
-      if (longTaken.length > 0) {
+      if (assignedItems.length > 0) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-info';
-        alertDiv.innerHTML = `<i class="fas fa-clock"></i> <strong>Equipos tomados por más de 30 días:</strong> ${longTaken.map(p => p.name + ' (' + p.assigned_to + ')').join(', ')}`;
+        alertDiv.innerHTML = `<i class="fas fa-clipboard-list"></i> <strong>Equipos asignados actualmente:</strong> ${assignedItems.map(p => p.name + ' (' + p.assigned_to + ')').join(', ')}`;
         area.appendChild(alertDiv);
       }
-    }
-
-    function isTakenTooLong(product) {
-      // Se necesita la fecha de último movimiento de salida, no implementado. Se usa assigned_to desde hace mucho? Simplificar: si assigned_to existe, mostrar.
-      return true;
     }
 
     function showQrModal(code) {
@@ -979,6 +980,7 @@
       showScanAlert(`<strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`, newStatus==='taken'?'warning':'success');
       renderScanInventory();
       updateSummaryCards();
+      renderNotifications();
     }
 
     function requestBulkAdjust(code, delta) {
@@ -1017,6 +1019,7 @@
       showScanAlert(`<strong>${product.name}</strong>: ${action} (${product.quantity} ahora)`, delta > 0 ? 'success' : 'warning');
       renderScanInventory();
       updateSummaryCards();
+      renderNotifications();
     }
 
     function showProductDetails(code) {
@@ -1088,6 +1091,7 @@
         saveProducts();
         renderScanInventory();
         updateSummaryCards();
+        renderNotifications();
       }
     }
 
@@ -1125,37 +1129,7 @@
         productMovements[key].count++;
         if (!productMovements[key].last || new Date(t.date) > new Date(productMovements[key].last)) productMovements[key].last = t.date;
       });
-      const sorted = Object.entries(productMovements).sort((a,b) => b[1].count - a[1].count).slice(0, 10);
-      const labels = sorted.map(([key]) => key);
-      const data = sorted.map(([,val]) => val.count);
-
-      // Gráfico
-      const ctx = document.getElementById('movementsChart').getContext('2d');
-      if (window.movementsChartInstance) window.movementsChartInstance.destroy();
-      window.movementsChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Movimientos',
-            data: data,
-            backgroundColor: '#f07b26',
-            borderRadius: 6,
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Productos con más movimientos' }
-          },
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-          }
-        }
-      });
-
-      // Tabla
+      const sorted = Object.entries(productMovements).sort((a,b) => b[1].count - a[1].count);
       sorted.forEach(([key, val]) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${key}</td><td>${val.count}</td><td>${val.last ? new Date(val.last).toLocaleString('es-CL') : '-'}</td>`;
@@ -1184,6 +1158,65 @@
         csv += `${new Date(t.date).toLocaleString('es-CL')},"${t.code}","${t.name}","${t.action}","${t.user}"\n`;
       });
       downloadCSV(csv, 'historial.csv');
+    }
+
+    function exportReportCSV() {
+      const rows = [...document.querySelectorAll('#report-table tbody tr')];
+      let csv = 'Producto,Cantidad de Movimientos,Último Movimiento\n';
+      rows.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (cells.length === 3) {
+          csv += `"${cells[0].textContent}","${cells[1].textContent}","${cells[2].textContent}"\n`;
+        }
+      });
+      downloadCSV(csv, 'reporte_movimientos.csv');
+    }
+
+    function downloadChartImage() {
+      const rows = [...document.querySelectorAll('#report-table tbody tr')].filter(tr => tr.querySelectorAll('td').length === 3);
+      if (rows.length === 0) { alert('No hay datos para graficar'); return; }
+      const labels = [], data = [];
+      rows.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        labels.push(cells[0].textContent);
+        data.push(parseInt(cells[1].textContent));
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Productos con más movimientos', canvas.width/2, 40);
+      const chartBottom = 100;
+      const chartTop = 80;
+      const chartHeight = canvas.height - chartBottom - chartTop;
+      const barWidth = (canvas.width - 100) / data.length - 20;
+      const maxData = Math.max(...data);
+      data.forEach((value, i) => {
+        const barHeight = (value / maxData) * chartHeight;
+        const x = 60 + i * (barWidth + 20);
+        const y = canvas.height - chartBottom - barHeight;
+        ctx.fillStyle = '#f07b26';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(value, x + barWidth/2, y - 5);
+        ctx.save();
+        ctx.translate(x + barWidth/2, canvas.height - chartBottom + 20);
+        ctx.rotate(-Math.PI/4);
+        ctx.fillText(labels[i].length > 20 ? labels[i].substring(0,20)+'...' : labels[i], 0, 0);
+        ctx.restore();
+      });
+      const link = document.createElement('a');
+      link.download = 'reporte_grafico.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     }
 
     function downloadCSV(csv, filename) {
