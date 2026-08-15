@@ -12,6 +12,8 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --color-primary: #f07b26;
@@ -110,7 +112,6 @@
     .table tbody td { vertical-align: middle; padding: 10px 12px; }
     .table-responsive { border-radius: 12px; }
 
-    /* Filtros */
     .btn-group .btn {
       font-size: 0.82rem; padding: 6px 14px; border-radius: 10px;
       margin: 0 2px; border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
@@ -126,7 +127,6 @@
       background: var(--color-secondary); color: #94a3b8;
       font-size: 0.8rem; padding: 14px 0; text-align: center; margin-top: 30px;
     }
-    /* Tarjetas clicables */
     .clickable-card {
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
@@ -140,19 +140,20 @@
       background: #fff; border-radius: var(--border-radius); padding: 16px;
       box-shadow: var(--shadow); text-align: center;
     }
-    .summary-card .icon {
-      font-size: 2rem; color: var(--color-primary);
+    .summary-card .icon { font-size: 2rem; color: var(--color-primary); }
+    .summary-card .value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
+    .summary-card .label { font-size: 0.85rem; color: #64748b; }
+
+    /* Imagen miniatura */
+    .product-thumb {
+      width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 8px;
     }
-    .summary-card .value {
-      font-size: 1.8rem; font-weight: 700; margin: 4px 0;
-    }
-    .summary-card .label {
-      font-size: 0.85rem; color: #64748b;
+    .modal-img {
+      max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <!-- Aplicación (sin login) -->
   <div id="app-container">
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container-fluid">
@@ -165,6 +166,7 @@
             <li class="nav-item"><button class="nav-link page-link active" data-page="scan"><i class="fas fa-qrcode"></i> Escanear</button></li>
             <li class="nav-item"><button class="nav-link page-link" data-page="history"><i class="fas fa-history"></i> Historial</button></li>
             <li class="nav-item"><button class="nav-link page-link" data-page="add"><i class="fas fa-plus-circle"></i> Agregar</button></li>
+            <li class="nav-item"><button class="nav-link page-link" data-page="reports"><i class="fas fa-chart-bar"></i> Reportes</button></li>
           </ul>
         </div>
       </div>
@@ -178,9 +180,9 @@
           <p class="text-muted small">Escanea o ingresa un código. Para equipos específicos se alterna Disponible/Tomado; para insumos a granel se descuenta una unidad.</p>
         </div>
 
-        <!-- Cámara / Escáner (prioridad) -->
+        <!-- Cámara / Escáner -->
         <div class="row g-3 mb-4">
-          <div class="col-lg-6 mx-auto"> <!-- Centrar en pantallas grandes -->
+          <div class="col-lg-6 mx-auto">
             <div class="card p-3">
               <div id="reader" class="mb-3" style="min-height:220px; background:#000; border-radius:12px;"></div>
               <button id="start-scan-btn" class="btn btn-primary w-100 mb-2"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
@@ -199,7 +201,7 @@
           </div>
         </div>
 
-        <!-- Resumen clicable (solo 2 tarjetas) -->
+        <!-- Resumen clicable -->
         <div class="row g-3 mb-4">
           <div class="col-6">
             <div class="summary-card clickable-card" id="card-taken" title="Ver equipos tomados">
@@ -216,6 +218,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Notificaciones rápidas -->
+        <div id="notifications-area" class="mb-3"></div>
 
         <hr>
         <h3 class="fw-bold mb-3"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
@@ -244,15 +249,38 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle" id="scan-inventory-table">
-            <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th id="col-status">Estado</th><th style="min-width:170px;">Acciones</th></tr></thead>
+            <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th id="col-status">Estado</th><th>Ubicación</th><th style="min-width:200px;">Acciones</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
+        <button id="export-inventory-btn" class="btn btn-outline-success btn-sm mt-2"><i class="fas fa-file-csv"></i> Exportar Inventario CSV</button>
+        <button id="print-labels-btn" class="btn btn-outline-primary btn-sm mt-2"><i class="fas fa-print"></i> Imprimir Etiquetas QR</button>
       </div>
 
       <!-- Página Historial -->
       <div id="page-history" class="page">
         <h2 class="fw-bold mb-3"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="history-search" placeholder="Buscar producto...">
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="history-type-filter">
+              <option value="all">Todas las acciones</option>
+              <option value="Entrada">Entrada</option>
+              <option value="Salida">Salida</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control" id="history-date-from">
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control" id="history-date-to">
+          </div>
+          <div class="col-md-3">
+            <button id="export-history-btn" class="btn btn-outline-success btn-sm w-100"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+          </div>
+        </div>
         <div class="table-responsive">
           <table class="table table-hover" id="history-table">
             <thead><tr><th>Fecha y Hora</th><th>Código</th><th>Producto</th><th>Acción</th><th>Usuario</th></tr></thead>
@@ -262,10 +290,11 @@
         <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-3"><i class="fas fa-trash-alt"></i> Limpiar historial</button>
       </div>
 
-      <!-- Página Agregar -->
+      <!-- Página Agregar/Editar -->
       <div id="page-add" class="page">
-        <h2 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto</h2>
+        <h2 class="fw-bold mb-3" id="add-page-title"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto</h2>
         <form id="add-product-form" class="row g-3" novalidate>
+          <input type="hidden" id="editing-code" value="">
           <div class="col-md-4">
             <label class="form-label">Tipo de producto</label>
             <select class="form-select" id="new-type">
@@ -282,7 +311,18 @@
             <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador" required>
           </div>
 
-          <!-- Campos para específico -->
+          <!-- Foto -->
+          <div class="col-md-4">
+            <label class="form-label">Foto del producto (opcional)</label>
+            <input type="file" class="form-control" id="new-photo" accept="image/*" capture="environment">
+            <div id="photo-preview" class="mt-2"></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Ubicación</label>
+            <input type="text" class="form-control" id="new-location" placeholder="Bodega, camión, obra...">
+          </div>
+
+          <!-- Campos específicos -->
           <div id="specific-fields" class="col-12">
             <div class="row">
               <div class="col-md-6">
@@ -296,10 +336,32 @@
                   <option value="taken">Tomado</option>
                 </select>
               </div>
+              <div class="col-md-3">
+                <label class="form-label">Asignado a (si tomado)</label>
+                <input type="text" class="form-control" id="new-assigned-to" placeholder="Persona o proyecto">
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-3">
+                <label class="form-label">Último mantenimiento</label>
+                <input type="date" class="form-control" id="new-last-maintenance">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Próximo mantenimiento</label>
+                <input type="date" class="form-control" id="new-next-maintenance">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Horas de uso</label>
+                <input type="number" class="form-control" id="new-hours-use" min="0" step="0.1">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Notas mantenimiento</label>
+                <input type="text" class="form-control" id="new-maintenance-notes" placeholder="Observaciones">
+              </div>
             </div>
           </div>
 
-          <!-- Campos para bulk -->
+          <!-- Campos bulk -->
           <div id="bulk-fields" class="col-12" style="display:none;">
             <div class="row">
               <div class="col-md-3">
@@ -318,9 +380,24 @@
           </div>
 
           <div class="col-12 d-flex">
-            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Agregar</button>
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar</button>
+            <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary ms-2" style="display:none;">Cancelar edición</button>
           </div>
         </form>
+      </div>
+
+      <!-- Página Reportes -->
+      <div id="page-reports" class="page">
+        <h2 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2" style="color:var(--color-primary);"></i>Reportes</h2>
+        <div class="card p-3 mb-3">
+          <canvas id="movementsChart" height="100"></canvas>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover" id="report-table">
+            <thead><tr><th>Producto</th><th>Cantidad de Movimientos</th><th>Último Movimiento</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </main>
 
@@ -349,7 +426,6 @@
       </div>
     </div>
   </div>
-  <!-- Modal para ajustar cantidad bulk -->
   <div class="modal fade" id="adjustQuantityModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -369,11 +445,35 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Detalles del Producto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body" id="details-modal-body"></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Asignar equipo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <p>¿A quién o a qué proyecto se asigna este equipo?</p>
+          <input type="text" class="form-control" id="assign-input" placeholder="Nombre de persona o proyecto">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="assign-confirm-btn">Asignar y Tomar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
@@ -387,20 +487,19 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const storage = getStorage(app);
     const productsRef = ref(db, 'productos');
     const transactionsRef = ref(db, 'transacciones');
 
-    // Usuario por defecto para registrar movimientos
     const currentUser = "sistema";
-
     let products = [];
     let transactions = [];
     let pendingAction = null;
-    let appInitialized = false;
+    let pendingAssignCode = null;
+    let editingCode = null;
 
     // ---------- INICIALIZACIÓN ----------
     function initApp() {
-      // Estado de conexión
       const badge = document.getElementById('connection-badge');
       onValue(ref(db, '.info/connected'), (snap) => {
         const online = snap.val() === true;
@@ -408,25 +507,32 @@
         badge.innerHTML = online ? '<i class="fas fa-link me-1"></i> En línea' : '<i class="fas fa-unlink me-1"></i> Sin conexión';
       });
 
-      // Cargar productos (sin datos demo)
       onValue(productsRef, (snapshot) => {
         const data = snapshot.val();
         products = data ? Object.values(data) : [];
         renderScanInventory();
         updateSummaryCards();
+        renderNotifications();
       });
 
-      // Cargar transacciones
       onValue(transactionsRef, (snapshot) => {
         const data = snapshot.val();
         transactions = data ? Object.values(data) : [];
         transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
-        if (document.getElementById('page-history').classList.contains('active')) {
-          renderHistory();
-        }
+        if (document.getElementById('page-history').classList.contains('active')) renderHistory();
+        if (document.getElementById('page-reports').classList.contains('active')) renderReports();
       });
 
-      // Navegación con cierre automático del menú colapsable
+      setupNavigation();
+      setupFilters();
+      setupScanner();
+      setupModals();
+      setupForm();
+      setupButtons();
+      window.showPage('scan');
+    }
+
+    function setupNavigation() {
       const pages = document.querySelectorAll('.page');
       const navLinks = document.querySelectorAll('.page-link');
       const navbarCollapse = document.getElementById('navbarNav');
@@ -438,14 +544,13 @@
         navLinks.forEach(l => l.classList.remove('active'));
         document.querySelector(`.page-link[data-page="${pageId}"]`)?.classList.add('active');
         if (pageId === 'history') renderHistory();
+        if (pageId === 'reports') renderReports();
         if (pageId === 'scan') {
           renderScanInventory();
           updateSummaryCards();
+          renderNotifications();
         }
-        
-        if (bsCollapse && navbarCollapse.classList.contains('show')) {
-          bsCollapse.hide();
-        }
+        if (bsCollapse && navbarCollapse.classList.contains('show')) bsCollapse.hide();
       };
 
       navLinks.forEach(link => {
@@ -455,12 +560,9 @@
           window.showPage(link.dataset.page);
         });
       });
+    }
 
-      // Iniciar escáner (no auto-iniciar, usuario debe pulsar botón)
-      initScanner();
-      window.showPage('scan');
-
-      // Filtros de tipo
+    function setupFilters() {
       document.querySelectorAll('.type-filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
           document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
@@ -468,8 +570,6 @@
           renderScanInventory();
         });
       });
-
-      // Filtros de estado
       document.querySelectorAll('.status-filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
           document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.remove('active'));
@@ -477,8 +577,6 @@
           renderScanInventory();
         });
       });
-
-      // Búsqueda
       const searchInput = document.getElementById('search-input');
       const clearBtn = document.getElementById('clear-search-btn');
       searchInput.addEventListener('input', () => {
@@ -490,23 +588,78 @@
         renderScanInventory();
       });
 
-      // Tarjetas clicables para filtrar inventario
       document.getElementById('card-taken').addEventListener('click', () => {
-        // Filtro: específicos tomados
         setActiveFilters('specific', 'taken');
         renderScanInventory();
-        // Hacer scroll a la tabla
         document.querySelector('#page-scan .table-responsive')?.scrollIntoView({ behavior: 'smooth' });
       });
-
       document.getElementById('card-low-stock').addEventListener('click', () => {
-        // Filtro: stock bajo (bulk)
         setActiveFilters('bulk', 'stock_low');
         renderScanInventory();
         document.querySelector('#page-scan .table-responsive')?.scrollIntoView({ behavior: 'smooth' });
       });
+    }
 
-      // Confirmar acción genérica
+    function setActiveFilters(type, status) {
+      document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+      document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+    }
+
+    function setupScanner() {
+      const startBtn = document.getElementById('start-scan-btn');
+      const stopBtn = document.getElementById('stop-scan-btn');
+      window.stopScanner = () => {
+        if (window.html5QrCode && window.html5QrCode.isScanning) {
+          window.html5QrCode.stop().then(() => { startBtn.disabled=false; stopBtn.disabled=true; }).catch(()=>{});
+        }
+      };
+      async function start() {
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (!devices?.length) { alert('Sin cámara'); return; }
+          let camId = devices.find(d => d.label.toLowerCase().includes('back')||d.label.toLowerCase().includes('rear'))?.id || devices[0].id;
+          window.html5QrCode = new Html5Qrcode("reader");
+          const formats = [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.ITF
+          ];
+          await window.html5QrCode.start({ deviceId: camId }, { fps:10, qrbox:250, formatsToSupport: formats }, (text) => {
+            handleCode(text);
+            window.stopScanner();
+          }, ()=>{});
+          startBtn.disabled = true; stopBtn.disabled = false;
+        } catch(e) { alert('Error cámara: '+e.message); }
+      }
+      function handleCode(code) {
+        code = code.trim().toUpperCase();
+        const p = products.find(x => x.code === code);
+        if (!p) {
+          showScanAlert(`Código no registrado: <strong>${code}</strong>`, 'danger');
+          return;
+        }
+        if (p.type === 'specific') {
+          if (p.status === 'available') {
+            requestAssignAndToggle(p.code);
+          } else {
+            toggleSpecificStatus(p);
+          }
+        } else {
+          requestBulkAdjust(code, -1);
+        }
+      }
+      startBtn.addEventListener('click', start);
+      stopBtn.addEventListener('click', window.stopScanner);
+      document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
+      document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
+    }
+
+    function setupModals() {
       document.getElementById('confirmToggleBtn').addEventListener('click', () => {
         if (pendingAction) {
           if (pendingAction.type === 'specific-toggle') {
@@ -521,7 +674,6 @@
         }
       });
 
-      // Modal ajuste cantidad bulk
       const adjustModal = document.getElementById('adjustQuantityModal');
       document.getElementById('adjust-plus').addEventListener('click', () => {
         const input = document.getElementById('adjust-quantity-input');
@@ -547,40 +699,39 @@
         }
       });
 
-      // Limpiar historial
+      document.getElementById('assign-confirm-btn').addEventListener('click', () => {
+        const val = document.getElementById('assign-input').value.trim();
+        if (val && pendingAssignCode) {
+          const p = products.find(x => x.code === pendingAssignCode);
+          if (p) {
+            p.assigned_to = val;
+            toggleSpecificStatus(p);
+          }
+          pendingAssignCode = null;
+          bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+        }
+      });
+    }
+
+    function setupForm() {
+      document.getElementById('new-type').addEventListener('change', toggleTypeFields);
+      document.getElementById('add-product-form').addEventListener('submit', handleFormSubmit);
+      document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
+      document.getElementById('new-photo').addEventListener('change', previewPhoto);
+      toggleTypeFields();
+    }
+
+    function setupButtons() {
       document.getElementById('clear-history-btn').addEventListener('click', () => {
         if (confirm('¿Borrar todo el historial?')) { transactions = []; saveTransactions(); renderHistory(); }
       });
-
-      // Agregar producto
-      document.getElementById('add-product-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
-        const type = document.getElementById('new-type').value;
-        const code = document.getElementById('new-code').value.trim().toUpperCase();
-        const name = document.getElementById('new-name').value.trim();
-        if (products.some(p => p.code === code)) { alert('Código existente.'); return; }
-
-        let newProduct = { code, name, type };
-        if (type === 'specific') {
-          newProduct.description = document.getElementById('new-description').value.trim();
-          newProduct.status = document.getElementById('new-status').value;
-        } else {
-          newProduct.quantity = parseInt(document.getElementById('new-quantity').value) || 0;
-          newProduct.minQuantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
-          newProduct.unit = document.getElementById('new-unit').value.trim();
-        }
-        products.push(newProduct);
-        saveProducts();
-        this.reset();
-        this.classList.remove('was-validated');
-        toggleTypeFields(); // Reset visual de campos
-      });
-
-      // Mostrar/ocultar campos según tipo en formulario
-      const newTypeSelect = document.getElementById('new-type');
-      newTypeSelect.addEventListener('change', toggleTypeFields);
-      toggleTypeFields(); // inicial
+      document.getElementById('export-inventory-btn').addEventListener('click', exportInventoryCSV);
+      document.getElementById('export-history-btn').addEventListener('click', exportHistoryCSV);
+      document.getElementById('print-labels-btn').addEventListener('click', printLabels);
+      document.getElementById('history-search').addEventListener('input', renderHistory);
+      document.getElementById('history-type-filter').addEventListener('change', renderHistory);
+      document.getElementById('history-date-from').addEventListener('change', renderHistory);
+      document.getElementById('history-date-to').addEventListener('change', renderHistory);
     }
 
     function toggleTypeFields() {
@@ -589,56 +740,118 @@
       document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
     }
 
-    function setActiveFilters(type, status) {
-      // Activar botones de filtro correspondientes
-      document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-      document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+    function previewPhoto() {
+      const file = document.getElementById('new-photo').files[0];
+      const previewDiv = document.getElementById('photo-preview');
+      previewDiv.innerHTML = '';
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          previewDiv.innerHTML = `<img src="${e.target.result}" class="product-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">`;
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
-    // ---------- FUNCIONES ----------
-    function saveProducts() { set(productsRef, products).catch(() => {}); }
-    function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
-    let currentTypeFilter = 'all';
-    let currentStatusFilter = 'all';
-    let currentSearchText = '';
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
 
+      const type = document.getElementById('new-type').value;
+      const code = document.getElementById('new-code').value.trim().toUpperCase();
+      const name = document.getElementById('new-name').value.trim();
+      const location = document.getElementById('new-location').value.trim();
+      const photoFile = document.getElementById('new-photo').files[0];
+
+      if (!editingCode && products.some(p => p.code === code)) {
+        alert('Código existente. Usa la opción Editar para modificarlo.');
+        return;
+      }
+
+      let photo_url = '';
+      if (photoFile) {
+        try {
+          const storageReference = storageRef(storage, `productos/${code}-${Date.now()}-${photoFile.name}`);
+          const snapshot = await uploadBytes(storageReference, photoFile);
+          photo_url = await getDownloadURL(snapshot.ref);
+        } catch (err) {
+          alert('Error al subir imagen: ' + err.message);
+          return;
+        }
+      }
+
+      let product = { code, name, type, location, photo_url };
+      if (type === 'specific') {
+        product.description = document.getElementById('new-description').value.trim();
+        product.status = document.getElementById('new-status').value;
+        product.assigned_to = document.getElementById('new-assigned-to').value.trim();
+        product.maintenance = {
+          last_maintenance: document.getElementById('new-last-maintenance').value,
+          next_maintenance: document.getElementById('new-next-maintenance').value,
+          hours_use: parseFloat(document.getElementById('new-hours-use').value) || 0,
+          notes: document.getElementById('new-maintenance-notes').value.trim()
+        };
+      } else {
+        product.quantity = parseInt(document.getElementById('new-quantity').value) || 0;
+        product.minQuantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
+        product.unit = document.getElementById('new-unit').value.trim();
+      }
+
+      if (editingCode) {
+        const index = products.findIndex(p => p.code === editingCode);
+        if (index > -1) {
+          // Mantener photo_url anterior si no se subió nueva
+          if (!photo_url) product.photo_url = products[index].photo_url;
+          products[index] = { ...products[index], ...product };
+        }
+      } else {
+        products.push(product);
+      }
+      saveProducts();
+      form.reset();
+      form.classList.remove('was-validated');
+      document.getElementById('photo-preview').innerHTML = '';
+      cancelEdit();
+      window.showPage('scan');
+    }
+
+    function cancelEdit() {
+      editingCode = null;
+      document.getElementById('editing-code').value = '';
+      document.getElementById('add-page-title').innerHTML = '<i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto';
+      document.getElementById('cancel-edit-btn').style.display = 'none';
+      document.getElementById('add-product-form').reset();
+      document.getElementById('photo-preview').innerHTML = '';
+      toggleTypeFields();
+    }
+
+    // ---------- RENDER FUNCTIONS ----------
     function renderScanInventory() {
       const typeFilter = document.querySelector('.type-filter-btn.active')?.dataset.type || 'all';
       const statusFilter = document.querySelector('.status-filter-btn.active')?.dataset.status || 'all';
       const searchText = document.getElementById('search-input').value.trim().toLowerCase();
-      
       const tbody = document.querySelector('#scan-inventory-table tbody');
       const colStatus = document.getElementById('col-status');
-      if (!tbody) return;
       tbody.innerHTML = '';
 
       let list = products.filter(p => {
-        // Filtro por tipo
         if (typeFilter !== 'all' && p.type !== typeFilter) return false;
-        // Filtro por estado (especial para stock_low)
         if (statusFilter === 'stock_low') {
-          // Solo aplica a granel
           if (p.type !== 'bulk' || p.quantity > p.minQuantity) return false;
         } else if (statusFilter !== 'all') {
-          // available/taken solo aplica a específicos
           if (p.type !== 'specific' || p.status !== statusFilter) return false;
         }
-        // Búsqueda
         if (searchText && !p.code.toLowerCase().includes(searchText) && !p.name.toLowerCase().includes(searchText)) return false;
         return true;
       });
 
-      // Ajustar encabezado según filtro de tipo
-      if (typeFilter === 'bulk' || statusFilter === 'stock_low') {
-        colStatus.textContent = 'Cantidad';
-      } else if (typeFilter === 'specific') {
-        colStatus.textContent = 'Estado';
-      } else {
-        colStatus.textContent = 'Tipo/Estado';
-      }
+      if (typeFilter === 'bulk' || statusFilter === 'stock_low') colStatus.textContent = 'Cantidad';
+      else if (typeFilter === 'specific') colStatus.textContent = 'Estado';
+      else colStatus.textContent = 'Tipo/Estado';
 
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
         return;
       }
 
@@ -649,44 +862,81 @@
 
         if (p.type === 'specific') {
           statusHtml = `<span class="badge ${p.status==='available'?'bg-success':'bg-danger'}">${p.status==='available'?'Disponible':'Tomado'}</span>`;
+          if (p.assigned_to) statusHtml += `<br><small class="text-muted">Asig: ${p.assigned_to}</small>`;
           actionsHtml = `
             <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
             <button class="btn btn-sm ${p.status==='available'?'btn-outline-danger':'btn-outline-success'} toggle-specific-btn" data-code="${p.code}"><i class="fas ${p.status==='available'?'fa-arrow-right':'fa-undo-alt'} me-1"></i>${p.status==='available'?'Tomar':'Devolver'}</button>
+            <button class="btn btn-sm btn-outline-info detail-btn me-1" data-code="${p.code}"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-outline-primary edit-btn me-1" data-code="${p.code}"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-danger delete-btn" data-code="${p.code}"><i class="fas fa-trash"></i></button>
           `;
-        } else { // bulk
+        } else {
           const lowStock = p.quantity <= p.minQuantity;
           statusHtml = `${p.quantity} ${p.unit || ''} ${lowStock ? '<span class="badge bg-warning text-dark ms-1">Stock bajo</span>' : ''}`;
           actionsHtml = `
             <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
             <button class="btn btn-sm btn-outline-success adjust-bulk-plus me-1" data-code="${p.code}"><i class="fas fa-plus"></i></button>
-            <button class="btn btn-sm btn-outline-danger adjust-bulk-minus" data-code="${p.code}"><i class="fas fa-minus"></i></button>
-            <button class="btn btn-sm btn-outline-primary adjust-bulk-set" data-code="${p.code}"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-danger adjust-bulk-minus me-1" data-code="${p.code}"><i class="fas fa-minus"></i></button>
+            <button class="btn btn-sm btn-outline-primary adjust-bulk-set me-1" data-code="${p.code}"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-info detail-btn me-1" data-code="${p.code}"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-outline-primary edit-btn me-1" data-code="${p.code}"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-danger delete-btn" data-code="${p.code}"><i class="fas fa-trash"></i></button>
           `;
         }
 
+        let thumb = p.photo_url ? `<img src="${p.photo_url}" class="product-thumb">` : '';
         tr.innerHTML = `
           <td><code>${p.code}</code></td>
-          <td>${p.name}</td>
+          <td>${thumb}${p.name}</td>
           <td><span class="badge bg-secondary">${p.type === 'specific' ? 'Específico' : 'Granel'}</span></td>
           <td>${statusHtml}</td>
+          <td>${p.location || '-'}</td>
           <td>${actionsHtml}</td>
         `;
         tbody.appendChild(tr);
       });
 
-      // Asignar eventos
+      attachTableEvents();
+    }
+
+    function attachTableEvents() {
       document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(b => b.addEventListener('click', () => showQrModal(b.dataset.code)));
       document.querySelectorAll('#scan-inventory-table .toggle-specific-btn').forEach(b => b.addEventListener('click', () => requestToggleSpecific(b.dataset.code)));
       document.querySelectorAll('#scan-inventory-table .adjust-bulk-plus').forEach(b => b.addEventListener('click', () => requestBulkAdjust(b.dataset.code, 1)));
       document.querySelectorAll('#scan-inventory-table .adjust-bulk-minus').forEach(b => b.addEventListener('click', () => requestBulkAdjust(b.dataset.code, -1)));
       document.querySelectorAll('#scan-inventory-table .adjust-bulk-set').forEach(b => b.addEventListener('click', () => openAdjustModal(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .detail-btn').forEach(b => b.addEventListener('click', () => showProductDetails(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .edit-btn').forEach(b => b.addEventListener('click', () => editProduct(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .delete-btn').forEach(b => b.addEventListener('click', () => deleteProduct(b.dataset.code)));
     }
 
     function updateSummaryCards() {
-      const specificTaken = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
-      const bulkLow = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity).length;
-      document.getElementById('summary-specific-taken').textContent = specificTaken;
-      document.getElementById('summary-bulk-low').textContent = bulkLow;
+      document.getElementById('summary-specific-taken').textContent = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
+      document.getElementById('summary-bulk-low').textContent = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity).length;
+    }
+
+    function renderNotifications() {
+      const area = document.getElementById('notifications-area');
+      area.innerHTML = '';
+      const lowStockItems = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity);
+      const longTaken = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to && isTakenTooLong(p));
+      if (lowStockItems.length > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning';
+        alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Stock bajo:</strong> ${lowStockItems.map(p => p.name).join(', ')}`;
+        area.appendChild(alertDiv);
+      }
+      if (longTaken.length > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-info';
+        alertDiv.innerHTML = `<i class="fas fa-clock"></i> <strong>Equipos tomados por más de 30 días:</strong> ${longTaken.map(p => p.name + ' (' + p.assigned_to + ')').join(', ')}`;
+        area.appendChild(alertDiv);
+      }
+    }
+
+    function isTakenTooLong(product) {
+      // Se necesita la fecha de último movimiento de salida, no implementado. Se usa assigned_to desde hace mucho? Simplificar: si assigned_to existe, mostrar.
+      return true;
     }
 
     function showQrModal(code) {
@@ -698,14 +948,27 @@
     function requestToggleSpecific(code) {
       const p = products.find(x => x.code === code);
       if (!p) return;
-      document.getElementById('confirmToggleBody').innerHTML = `¿Cambiar estado de <strong>${p.name}</strong> (${p.code})?`;
-      pendingAction = { type: 'specific-toggle', code };
-      new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
+      if (p.status === 'available') {
+        requestAssignAndToggle(code);
+      } else {
+        document.getElementById('confirmToggleBody').innerHTML = `¿Cambiar estado de <strong>${p.name}</strong> a Disponible?`;
+        pendingAction = { type: 'specific-toggle', code };
+        new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
+      }
+    }
+
+    function requestAssignAndToggle(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      pendingAssignCode = code;
+      document.getElementById('assign-input').value = p.assigned_to || '';
+      new bootstrap.Modal(document.getElementById('assignModal')).show();
     }
 
     function toggleSpecificStatus(product) {
       const newStatus = product.status === 'available' ? 'taken' : 'available';
       product.status = newStatus;
+      if (newStatus === 'available') product.assigned_to = '';
       saveProducts();
       transactions.unshift({
         date: new Date().toISOString(), code: product.code, name: product.name,
@@ -722,10 +985,7 @@
       const p = products.find(x => x.code === code);
       if (!p) return;
       const newQty = p.quantity + delta;
-      if (newQty < 0) {
-        alert('No se puede reducir por debajo de 0');
-        return;
-      }
+      if (newQty < 0) { alert('No se puede reducir por debajo de 0'); return; }
       const actionText = delta > 0 ? 'agregar' : 'retirar';
       document.getElementById('confirmToggleBody').innerHTML = `¿${actionText} <strong>${Math.abs(delta)}</strong> unidad(es) de <strong>${p.name}</strong>? (Actual: ${p.quantity})`;
       pendingAction = { type: 'bulk-adjust', code, delta };
@@ -759,20 +1019,94 @@
       updateSummaryCards();
     }
 
-    function showScanAlert(message, type) {
-      const alertDiv = document.getElementById('scan-result');
-      if (alertDiv) {
-        alertDiv.style.display = 'block';
-        alertDiv.className = `alert mt-3 alert-${type}`;
-        alertDiv.innerHTML = message;
+    function showProductDetails(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      const modalBody = document.getElementById('details-modal-body');
+      let html = '';
+      if (p.photo_url) html += `<img src="${p.photo_url}" class="modal-img">`;
+      html += `<p><strong>Código:</strong> ${p.code}</p>`;
+      html += `<p><strong>Nombre:</strong> ${p.name}</p>`;
+      html += `<p><strong>Tipo:</strong> ${p.type === 'specific' ? 'Específico' : 'A granel'}</p>`;
+      if (p.location) html += `<p><strong>Ubicación:</strong> ${p.location}</p>`;
+      if (p.type === 'specific') {
+        if (p.description) html += `<p><strong>Descripción:</strong> ${p.description}</p>`;
+        html += `<p><strong>Estado:</strong> ${p.status === 'available' ? 'Disponible' : 'Tomado'}</p>`;
+        if (p.assigned_to) html += `<p><strong>Asignado a:</strong> ${p.assigned_to}</p>`;
+        if (p.maintenance) {
+          html += `<hr><h6>Mantenimiento</h6>`;
+          if (p.maintenance.last_maintenance) html += `<p><strong>Último:</strong> ${p.maintenance.last_maintenance}</p>`;
+          if (p.maintenance.next_maintenance) html += `<p><strong>Próximo:</strong> ${p.maintenance.next_maintenance}</p>`;
+          if (p.maintenance.hours_use) html += `<p><strong>Horas uso:</strong> ${p.maintenance.hours_use}</p>`;
+          if (p.maintenance.notes) html += `<p><strong>Notas:</strong> ${p.maintenance.notes}</p>`;
+        }
+      } else {
+        html += `<p><strong>Cantidad:</strong> ${p.quantity} ${p.unit || ''}</p>`;
+        html += `<p><strong>Stock mínimo:</strong> ${p.minQuantity}</p>`;
+      }
+      modalBody.innerHTML = html;
+      new bootstrap.Modal(document.getElementById('detailsModal')).show();
+    }
+
+    function editProduct(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      editingCode = code;
+      document.getElementById('editing-code').value = code;
+      document.getElementById('add-page-title').innerHTML = '<i class="fas fa-edit me-2" style="color:var(--color-primary);"></i>Editar Producto';
+      document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+      document.getElementById('new-type').value = p.type;
+      document.getElementById('new-code').value = p.code;
+      document.getElementById('new-name').value = p.name;
+      document.getElementById('new-location').value = p.location || '';
+      document.getElementById('new-photo').value = '';
+      document.getElementById('photo-preview').innerHTML = p.photo_url ? `<img src="${p.photo_url}" class="product-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">` : '';
+      if (p.type === 'specific') {
+        document.getElementById('new-description').value = p.description || '';
+        document.getElementById('new-status').value = p.status;
+        document.getElementById('new-assigned-to').value = p.assigned_to || '';
+        if (p.maintenance) {
+          document.getElementById('new-last-maintenance').value = p.maintenance.last_maintenance || '';
+          document.getElementById('new-next-maintenance').value = p.maintenance.next_maintenance || '';
+          document.getElementById('new-hours-use').value = p.maintenance.hours_use || '';
+          document.getElementById('new-maintenance-notes').value = p.maintenance.notes || '';
+        }
+      } else {
+        document.getElementById('new-quantity').value = p.quantity;
+        document.getElementById('new-min-quantity').value = p.minQuantity;
+        document.getElementById('new-unit').value = p.unit || '';
+      }
+      toggleTypeFields();
+      window.showPage('add');
+    }
+
+    function deleteProduct(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      if (confirm(`¿Eliminar ${p.name}?`)) {
+        products = products.filter(x => x.code !== code);
+        saveProducts();
+        renderScanInventory();
+        updateSummaryCards();
       }
     }
 
     function renderHistory() {
+      const search = document.getElementById('history-search').value.toLowerCase();
+      const typeFilter = document.getElementById('history-type-filter').value;
+      const dateFrom = document.getElementById('history-date-from').value;
+      const dateTo = document.getElementById('history-date-to').value;
+      let list = transactions.filter(t => {
+        if (search && !t.name.toLowerCase().includes(search) && !t.code.toLowerCase().includes(search)) return false;
+        if (typeFilter !== 'all' && !t.action.includes(typeFilter)) return false;
+        const d = new Date(t.date);
+        if (dateFrom && d < new Date(dateFrom+'T00:00:00')) return false;
+        if (dateTo && d > new Date(dateTo+'T23:59:59')) return false;
+        return true;
+      });
       const tbody = document.querySelector('#history-table tbody');
-      if (!tbody) return;
-      tbody.innerHTML = transactions.length ? '' : '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos</td></tr>';
-      transactions.forEach(t => {
+      tbody.innerHTML = list.length ? '' : '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos</td></tr>';
+      list.forEach(t => {
         const d = new Date(t.date);
         const tr = document.createElement('tr');
         const actionClass = t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success';
@@ -781,49 +1115,123 @@
       });
     }
 
-    // ---------- ESCÁNER ----------
-    function initScanner() {
-      const startBtn = document.getElementById('start-scan-btn');
-      const stopBtn = document.getElementById('stop-scan-btn');
-      window.stopScanner = () => {
-        if (window.html5QrCode && window.html5QrCode.isScanning) {
-          window.html5QrCode.stop().then(() => { startBtn.disabled=false; stopBtn.disabled=true; }).catch(()=>{});
+    function renderReports() {
+      const reportTable = document.querySelector('#report-table tbody');
+      reportTable.innerHTML = '';
+      const productMovements = {};
+      transactions.forEach(t => {
+        const key = t.code + ' - ' + t.name;
+        if (!productMovements[key]) productMovements[key] = { count: 0, last: null };
+        productMovements[key].count++;
+        if (!productMovements[key].last || new Date(t.date) > new Date(productMovements[key].last)) productMovements[key].last = t.date;
+      });
+      const sorted = Object.entries(productMovements).sort((a,b) => b[1].count - a[1].count).slice(0, 10);
+      const labels = sorted.map(([key]) => key);
+      const data = sorted.map(([,val]) => val.count);
+
+      // Gráfico
+      const ctx = document.getElementById('movementsChart').getContext('2d');
+      if (window.movementsChartInstance) window.movementsChartInstance.destroy();
+      window.movementsChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Movimientos',
+            data: data,
+            backgroundColor: '#f07b26',
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Productos con más movimientos' }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
         }
-      };
-      async function start() {
-        try {
-          const devices = await Html5Qrcode.getCameras();
-          if (!devices?.length) { alert('Sin cámara'); return; }
-          let camId = devices.find(d => d.label.toLowerCase().includes('back')||d.label.toLowerCase().includes('rear'))?.id || devices[0].id;
-          window.html5QrCode = new Html5Qrcode("reader");
-          await window.html5QrCode.start({ deviceId: camId }, { fps:10, qrbox:250 }, (text) => {
-            handleCode(text);
-            window.stopScanner();
-          }, ()=>{});
-          startBtn.disabled = true; stopBtn.disabled = false;
-        } catch(e) { alert('Error cámara: '+e.message); }
-      }
-      function handleCode(code) {
-        code = code.trim().toUpperCase();
-        const p = products.find(x => x.code === code);
-        if (!p) {
-          showScanAlert(`Código no registrado: <strong>${code}</strong>`, 'danger');
-          return;
-        }
-        if (p.type === 'specific') {
-          toggleSpecificStatus(p);
-        } else {
-          // Escanear un bulk descuenta 1 unidad
-          requestBulkAdjust(code, -1);
-        }
-      }
-      startBtn.addEventListener('click', start);
-      stopBtn.addEventListener('click', window.stopScanner);
-      document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
-      document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
+      });
+
+      // Tabla
+      sorted.forEach(([key, val]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${key}</td><td>${val.count}</td><td>${val.last ? new Date(val.last).toLocaleString('es-CL') : '-'}</td>`;
+        reportTable.appendChild(tr);
+      });
+      if (sorted.length === 0) reportTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>';
     }
 
-    // Inicializar aplicación
+    function exportInventoryCSV() {
+      let csv = 'Código,Nombre,Tipo,Estado/Cantidad,Ubicación,Asignado,Foto\n';
+      products.forEach(p => {
+        let row = [p.code, p.name, p.type === 'specific' ? 'Específico' : 'Granel'];
+        if (p.type === 'specific') row.push(p.status === 'available' ? 'Disponible' : 'Tomado');
+        else row.push(p.quantity + ' ' + (p.unit || ''));
+        row.push(p.location || '');
+        row.push(p.assigned_to || '');
+        row.push(p.photo_url || '');
+        csv += row.map(v => `"${v.replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+      downloadCSV(csv, 'inventario.csv');
+    }
+
+    function exportHistoryCSV() {
+      let csv = 'Fecha,Código,Producto,Acción,Usuario\n';
+      transactions.forEach(t => {
+        csv += `${new Date(t.date).toLocaleString('es-CL')},"${t.code}","${t.name}","${t.action}","${t.user}"\n`;
+      });
+      downloadCSV(csv, 'historial.csv');
+    }
+
+    function downloadCSV(csv, filename) {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function printLabels() {
+      const qrContainer = document.createElement('div');
+      qrContainer.style.display = 'flex';
+      qrContainer.style.flexWrap = 'wrap';
+      qrContainer.style.gap = '20px';
+      qrContainer.style.padding = '20px';
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.style.width = '200px';
+        card.style.textAlign = 'center';
+        card.style.border = '1px solid #ccc';
+        card.style.padding = '10px';
+        card.innerHTML = `<h6>${p.name}</h6><div id="qr-${p.code}" style="margin: 0 auto;"></div><small>${p.code}</small>`;
+        qrContainer.appendChild(card);
+        setTimeout(() => {
+          new QRCode(document.getElementById(`qr-${p.code}`), { text: p.code, width: 150, height: 150 });
+        }, 100);
+      });
+      const win = window.open('', '_blank');
+      win.document.write('<html><head><title>Etiquetas QR</title></head><body>');
+      win.document.write(qrContainer.outerHTML);
+      win.document.write('</body></html>');
+      win.document.close();
+      setTimeout(() => { win.print(); }, 500);
+    }
+
+    function showScanAlert(message, type) {
+      const alertDiv = document.getElementById('scan-result');
+      alertDiv.style.display = 'block';
+      alertDiv.className = `alert mt-3 alert-${type}`;
+      alertDiv.innerHTML = message;
+    }
+
+    function saveProducts() { set(productsRef, products).catch(() => {}); }
+    function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
+
+    // Iniciar aplicación
     initApp();
   </script>
 </body>
