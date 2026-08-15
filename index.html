@@ -530,15 +530,6 @@
       setupForm();
       setupButtons();
       window.showPage('scan');
-
-      // Forzar cierre del menú de navegación al cargar
-      const navbarCollapseEl = document.getElementById('navbarNav');
-      if (navbarCollapseEl) {
-        navbarCollapseEl.classList.remove('show');
-        navbarCollapseEl.setAttribute('aria-expanded', 'false');
-        const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapseEl);
-        bsCollapse.hide();
-      }
     }
 
     function setupNavigation() {
@@ -569,7 +560,6 @@
           e.preventDefault();
           if (window.stopScanner) window.stopScanner();
           window.showPage(link.dataset.page);
-          // Cerrar el menú inmediatamente al hacer clic en un enlace
           if (bsCollapse && navbarCollapse.classList.contains('show')) {
             bsCollapse.hide();
           }
@@ -1274,8 +1264,20 @@
     function saveProducts() { set(productsRef, products).catch(() => {}); }
     function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
 
-    // Iniciar aplicación
-    initApp();
+    // Iniciar aplicación y forzar cierre del menú en móvil
+    document.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      // Asegurar que el menú colapsado esté cerrado al cargar
+      setTimeout(() => {
+        const navbarCollapseEl = document.getElementById('navbarNav');
+        if (navbarCollapseEl) {
+          navbarCollapseEl.classList.remove('show');
+          navbarCollapseEl.setAttribute('aria-expanded', 'false');
+          const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapseEl);
+          bsCollapse.hide();
+        }
+      }, 200);
+    });
   </script>
 </body>
 </html>
