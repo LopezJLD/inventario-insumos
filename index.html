@@ -34,28 +34,6 @@
     }
     .app-hidden { display: none !important; }
 
-    /* Login */
-    #login-screen {
-      position: fixed; inset: 0;
-      background: linear-gradient(135deg, #1e2a38, #2c3e50);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999; padding: 16px;
-    }
-    .login-card {
-      width: 100%; max-width: 400px; background: #fff;
-      border-radius: 18px; padding: 28px 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    }
-    .login-card .login-icon {
-      width: 54px; height: 54px; background: #fff3e8;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 12px; font-size: 1.5rem; color: var(--color-primary);
-    }
-    .login-card .btn-primary {
-      background: var(--color-primary); border: none; border-radius: 10px;
-      font-weight: 600; padding: 10px;
-    }
-
     /* Navbar */
     .navbar {
       background: var(--color-secondary); box-shadow: 0 2px 10px rgba(0,0,0,0.2);
@@ -76,10 +54,6 @@
     }
     .navbar .nav-link.active {
       background: rgba(240,123,38,0.25) !important; color: #fff !important;
-    }
-    #logout-btn {
-      border-radius: 10px; padding: 6px 14px; font-size: 0.85rem;
-      border: 1.5px solid rgba(255,255,255,0.5); color: #fff; background: transparent;
     }
 
     /* Menú colapsado centrado y espaciado */
@@ -104,15 +78,6 @@
         margin: 4px 0;
         padding: 12px;
         font-size: 1rem;
-      }
-      .navbar .d-flex.align-items-center {
-        flex-direction: column;
-        align-items: center !important;
-        margin-top: 8px;
-      }
-      #logout-btn {
-        width: 90%;
-        margin: 4px 0;
       }
     }
 
@@ -161,7 +126,16 @@
       background: var(--color-secondary); color: #94a3b8;
       font-size: 0.8rem; padding: 14px 0; text-align: center; margin-top: 30px;
     }
-    /* Summary cards */
+    /* Tarjetas clicables */
+    .clickable-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      user-select: none;
+    }
+    .clickable-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
     .summary-card {
       background: #fff; border-radius: var(--border-radius); padding: 16px;
       box-shadow: var(--shadow); text-align: center;
@@ -178,31 +152,8 @@
   </style>
 </head>
 <body>
-  <!-- Pantalla de login -->
-  <div id="login-screen">
-    <div class="login-card">
-      <div class="login-icon"><i class="fas fa-hard-hat"></i></div>
-      <h5 class="text-center fw-bold mb-1">Insumos Sucor</h5>
-      <p class="text-center text-muted small mb-3">Control de inventario interno</p>
-      <form id="login-form">
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Usuario</label>
-          <input type="text" class="form-control" id="login-username" placeholder="Tu usuario" required autocomplete="off">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Contraseña</label>
-          <input type="password" class="form-control" id="login-password" placeholder="••••••" required autocomplete="off">
-        </div>
-        <div id="login-error" class="text-danger small mb-2" style="display:none;">
-          <i class="fas fa-exclamation-circle"></i> Usuario o contraseña incorrectos.
-        </div>
-        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-arrow-right-to-bracket me-2"></i>Ingresar</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Aplicación -->
-  <div id="app-container" class="app-hidden">
+  <!-- Aplicación (sin login) -->
+  <div id="app-container">
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container-fluid">
         <span class="navbar-brand"><i class="fas fa-hard-hat"></i> Insumos Sucor</span>
@@ -215,10 +166,6 @@
             <li class="nav-item"><button class="nav-link page-link" data-page="history"><i class="fas fa-history"></i> Historial</button></li>
             <li class="nav-item"><button class="nav-link page-link" data-page="add"><i class="fas fa-plus-circle"></i> Agregar</button></li>
           </ul>
-          <div class="d-flex align-items-center">
-            <span id="current-user-display" class="text-white me-2 small"><i class="fas fa-user-circle me-1"></i><span id="username-label"></span></span>
-            <button id="logout-btn" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i> Salir</button>
-          </div>
         </div>
       </div>
     </nav>
@@ -231,40 +178,9 @@
           <p class="text-muted small">Escanea o ingresa un código. Para equipos específicos se alterna Disponible/Tomado; para insumos a granel se descuenta una unidad.</p>
         </div>
 
-        <!-- Resumen -->
-        <div class="row g-3 mb-4" id="summary-cards">
-          <div class="col-6 col-md-3">
-            <div class="summary-card">
-              <div class="icon"><i class="fas fa-tools"></i></div>
-              <div class="value" id="summary-specific-available">0</div>
-              <div class="label">Equipos Disponibles</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="summary-card">
-              <div class="icon"><i class="fas fa-user-check"></i></div>
-              <div class="value" id="summary-specific-taken">0</div>
-              <div class="label">Equipos Tomados</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="summary-card">
-              <div class="icon"><i class="fas fa-boxes"></i></div>
-              <div class="value" id="summary-bulk-total">0</div>
-              <div class="label">Insumos a Granel</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="summary-card">
-              <div class="icon"><i class="fas fa-exclamation-triangle text-warning"></i></div>
-              <div class="value" id="summary-bulk-low">0</div>
-              <div class="label">Stock Bajo</div>
-            </div>
-          </div>
-        </div>
-
+        <!-- Cámara / Escáner (prioridad) -->
         <div class="row g-3 mb-4">
-          <div class="col-lg-6">
+          <div class="col-lg-6 mx-auto"> <!-- Centrar en pantallas grandes -->
             <div class="card p-3">
               <div id="reader" class="mb-3" style="min-height:220px; background:#000; border-radius:12px;"></div>
               <button id="start-scan-btn" class="btn btn-primary w-100 mb-2"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
@@ -279,6 +195,24 @@
                 <button class="btn btn-primary" id="manual-submit"><i class="fas fa-check"></i> Registrar</button>
               </div>
               <div id="scan-result" class="alert mt-3" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen clicable (solo 2 tarjetas) -->
+        <div class="row g-3 mb-4">
+          <div class="col-6">
+            <div class="summary-card clickable-card" id="card-taken" title="Ver equipos tomados">
+              <div class="icon"><i class="fas fa-user-check"></i></div>
+              <div class="value" id="summary-specific-taken">0</div>
+              <div class="label">Equipos Tomados</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="summary-card clickable-card" id="card-low-stock" title="Ver stock bajo">
+              <div class="icon"><i class="fas fa-exclamation-triangle text-warning"></i></div>
+              <div class="value" id="summary-bulk-low">0</div>
+              <div class="label">Stock Bajo</div>
             </div>
           </div>
         </div>
@@ -298,6 +232,7 @@
               <button class="btn btn-outline-secondary status-filter-btn active" data-status="all">Todos</button>
               <button class="btn btn-outline-secondary status-filter-btn" data-status="available">Disponibles</button>
               <button class="btn btn-outline-secondary status-filter-btn" data-status="taken">Tomados</button>
+              <button class="btn btn-outline-secondary status-filter-btn" data-status="stock_low">Stock Bajo</button>
             </div>
           </div>
           <div class="col-md-3">
@@ -386,7 +321,6 @@
             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Agregar</button>
           </div>
         </form>
-        <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm mt-4"><i class="fas fa-sync-alt"></i> Reiniciar datos demo</button>
       </div>
     </main>
 
@@ -456,124 +390,13 @@
     const productsRef = ref(db, 'productos');
     const transactionsRef = ref(db, 'transacciones');
 
+    // Usuario por defecto para registrar movimientos
+    const currentUser = "sistema";
+
     let products = [];
     let transactions = [];
-    let pendingAction = null; // {type: 'specific-toggle'|'bulk-adjust', code: string, delta?: number}
-    let currentUser = null;
+    let pendingAction = null;
     let appInitialized = false;
-
-    const validUsers = {
-      pedro: "123456", luis: "123456", leo: "123456", klaudia: "123456", pabla: "123456"
-    };
-
-    const DEMO_PRODUCTS = [
-      // Específicos
-      { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
-      { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
-      { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
-      { code: "22KVA", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "111-GSW15P-2622368", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "112-GSW15Y-2670398", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "113-GSW22P-2677872", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "114-GSW22P-2675692", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "115-25KVA-5763919", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "116-25KVA-5783893", name: "Eelink TK418", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "117-35KVA-3911640", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "118-35KVA-3911639", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "119-35KVA-3889657", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "122-GSW30-2677188", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "125-GPW45-2678664", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "127-GSW80P-2670415", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "130-GSW110P-0006943", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "131-3366PRO212", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "133-1391PRO2V15", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "135-7000662", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "136-7001074", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "137-7001077", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "138-7001086", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "139-7001088", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "140-7001971", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "141-7001972", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "142-7001986", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "143-7002348", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "144-7002578", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "145-7002580", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "146-7002195", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "147-7000676", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "148-7002219", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
-      { code: "150-BMP-8500 33006", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "151-BMP-8500 32300", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
-      { code: "152-BMP-8500 33071", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "153-BMP-8500 33062", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
-      { code: "154-ARR1575", name: "Eelink TK418", type: "specific", description: "Rastreador GPS", status: "available" },
-      // A granel
-      { code: "FILTRO-AIRE-001", name: "Filtro de aire", type: "bulk", quantity: 25, minQuantity: 5, unit: "unidades" },
-      { code: "ACEITE-15W40", name: "Aceite 15W40", type: "bulk", quantity: 12, minQuantity: 3, unit: "bidones" },
-      { code: "FILTRO-ACEITE-001", name: "Filtro de aceite", type: "bulk", quantity: 30, minQuantity: 8, unit: "unidades" },
-      { code: "GUANTES-TALLA-L", name: "Guantes talla L", type: "bulk", quantity: 100, minQuantity: 20, unit: "pares" },
-      { code: "CASCO-BLANCO", name: "Casco de seguridad blanco", type: "bulk", quantity: 15, minQuantity: 4, unit: "unidades" },
-    ];
-
-    // ---------- LOGIN ----------
-    const loginScreen = document.getElementById('login-screen');
-    const appContainer = document.getElementById('app-container');
-    const loginForm = document.getElementById('login-form');
-    const loginError = document.getElementById('login-error');
-    const usernameInput = document.getElementById('login-username');
-    const passwordInput = document.getElementById('login-password');
-    const usernameLabel = document.getElementById('username-label');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    function checkLogin() {
-      const stored = localStorage.getItem('currentUser');
-      if (stored && validUsers.hasOwnProperty(stored.toLowerCase())) {
-        currentUser = stored;
-        showApp();
-      } else {
-        currentUser = null;
-        localStorage.removeItem('currentUser');
-        showLogin();
-      }
-    }
-
-    function showLogin() {
-      loginScreen.style.display = 'flex';
-      appContainer.classList.add('app-hidden');
-      if (appInitialized && window.stopScanner) window.stopScanner();
-      appInitialized = false;
-    }
-
-    function showApp() {
-      loginScreen.style.display = 'none';
-      appContainer.classList.remove('app-hidden');
-      usernameLabel.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
-      if (!appInitialized) {
-        appInitialized = true;
-        initApp();
-      }
-    }
-
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const u = usernameInput.value.trim().toLowerCase();
-      const p = passwordInput.value;
-      if (validUsers.hasOwnProperty(u) && validUsers[u] === p) {
-        currentUser = u;
-        localStorage.setItem('currentUser', currentUser);
-        loginError.style.display = 'none';
-        showApp();
-      } else {
-        loginError.style.display = 'block';
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('currentUser');
-      currentUser = null;
-      showLogin();
-    });
-
-    checkLogin();
 
     // ---------- INICIALIZACIÓN ----------
     function initApp() {
@@ -585,14 +408,10 @@
         badge.innerHTML = online ? '<i class="fas fa-link me-1"></i> En línea' : '<i class="fas fa-unlink me-1"></i> Sin conexión';
       });
 
-      // Cargar productos
+      // Cargar productos (sin datos demo)
       onValue(productsRef, (snapshot) => {
         const data = snapshot.val();
         products = data ? Object.values(data) : [];
-        if (products.length === 0) {
-          products = [...DEMO_PRODUCTS];
-          set(productsRef, products).catch(() => {});
-        }
         renderScanInventory();
         updateSummaryCards();
       });
@@ -624,7 +443,6 @@
           updateSummaryCards();
         }
         
-        // Cerrar el menú colapsable si está abierto
         if (bsCollapse && navbarCollapse.classList.contains('show')) {
           bsCollapse.hide();
         }
@@ -638,7 +456,7 @@
         });
       });
 
-      // Iniciar escáner
+      // Iniciar escáner (no auto-iniciar, usuario debe pulsar botón)
       initScanner();
       window.showPage('scan');
 
@@ -651,7 +469,7 @@
         });
       });
 
-      // Filtros de estado (solo aplica a específicos)
+      // Filtros de estado
       document.querySelectorAll('.status-filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
           document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.remove('active'));
@@ -672,7 +490,23 @@
         renderScanInventory();
       });
 
-      // Confirmar acción genérica (toggle específico o ajuste bulk)
+      // Tarjetas clicables para filtrar inventario
+      document.getElementById('card-taken').addEventListener('click', () => {
+        // Filtro: específicos tomados
+        setActiveFilters('specific', 'taken');
+        renderScanInventory();
+        // Hacer scroll a la tabla
+        document.querySelector('#page-scan .table-responsive')?.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      document.getElementById('card-low-stock').addEventListener('click', () => {
+        // Filtro: stock bajo (bulk)
+        setActiveFilters('bulk', 'stock_low');
+        renderScanInventory();
+        document.querySelector('#page-scan .table-responsive')?.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // Confirmar acción genérica
       document.getElementById('confirmToggleBtn').addEventListener('click', () => {
         if (pendingAction) {
           if (pendingAction.type === 'specific-toggle') {
@@ -704,7 +538,6 @@
           if (p) {
             const newQty = parseInt(document.getElementById('adjust-quantity-input').value);
             if (!isNaN(newQty) && newQty >= 0) {
-              // Calcular diferencia para historial
               const delta = newQty - p.quantity;
               adjustBulkQuantity(p, delta);
               pendingAction = null;
@@ -741,13 +574,7 @@
         saveProducts();
         this.reset();
         this.classList.remove('was-validated');
-        // Mostrar campos correspondientes al tipo por defecto
-        toggleTypeFields();
-      });
-
-      // Reset demo
-      document.getElementById('reset-demo-btn').addEventListener('click', () => {
-        if (confirm('¿Reemplazar con datos demo?')) { products = [...DEMO_PRODUCTS]; saveProducts(); }
+        toggleTypeFields(); // Reset visual de campos
       });
 
       // Mostrar/ocultar campos según tipo en formulario
@@ -760,6 +587,12 @@
       const type = document.getElementById('new-type').value;
       document.getElementById('specific-fields').style.display = type === 'specific' ? 'block' : 'none';
       document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
+    }
+
+    function setActiveFilters(type, status) {
+      // Activar botones de filtro correspondientes
+      document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+      document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
     }
 
     // ---------- FUNCIONES ----------
@@ -782,15 +615,21 @@
       let list = products.filter(p => {
         // Filtro por tipo
         if (typeFilter !== 'all' && p.type !== typeFilter) return false;
-        // Filtro por estado solo aplica a specific
-        if (p.type === 'specific' && statusFilter !== 'all' && p.status !== statusFilter) return false;
+        // Filtro por estado (especial para stock_low)
+        if (statusFilter === 'stock_low') {
+          // Solo aplica a granel
+          if (p.type !== 'bulk' || p.quantity > p.minQuantity) return false;
+        } else if (statusFilter !== 'all') {
+          // available/taken solo aplica a específicos
+          if (p.type !== 'specific' || p.status !== statusFilter) return false;
+        }
         // Búsqueda
         if (searchText && !p.code.toLowerCase().includes(searchText) && !p.name.toLowerCase().includes(searchText)) return false;
         return true;
       });
 
       // Ajustar encabezado según filtro de tipo
-      if (typeFilter === 'bulk') {
+      if (typeFilter === 'bulk' || statusFilter === 'stock_low') {
         colStatus.textContent = 'Cantidad';
       } else if (typeFilter === 'specific') {
         colStatus.textContent = 'Estado';
@@ -844,13 +683,9 @@
     }
 
     function updateSummaryCards() {
-      const specificAvailable = products.filter(p => p.type === 'specific' && p.status === 'available').length;
       const specificTaken = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
-      const bulkTotal = products.filter(p => p.type === 'bulk').length;
       const bulkLow = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity).length;
-      document.getElementById('summary-specific-available').textContent = specificAvailable;
       document.getElementById('summary-specific-taken').textContent = specificTaken;
-      document.getElementById('summary-bulk-total').textContent = bulkTotal;
       document.getElementById('summary-bulk-low').textContent = bulkLow;
     }
 
@@ -875,7 +710,7 @@
       transactions.unshift({
         date: new Date().toISOString(), code: product.code, name: product.name,
         action: newStatus==='taken'?'Salida (Tomado)':'Entrada (Devuelto)',
-        user: currentUser.charAt(0).toUpperCase()+currentUser.slice(1)
+        user: currentUser
       });
       saveTransactions();
       showScanAlert(`<strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`, newStatus==='taken'?'warning':'success');
@@ -900,7 +735,7 @@
     function openAdjustModal(code) {
       const p = products.find(x => x.code === code);
       if (!p) return;
-      pendingAction = { type: 'bulk-adjust', code }; // solo para guardar el código
+      pendingAction = { type: 'bulk-adjust', code };
       document.getElementById('adjust-quantity-info').innerHTML = `Ajustar cantidad de <strong>${p.name}</strong> (${p.code})`;
       document.getElementById('adjust-quantity-input').value = p.quantity;
       new bootstrap.Modal(document.getElementById('adjustQuantityModal')).show();
@@ -916,7 +751,7 @@
       transactions.unshift({
         date: new Date().toISOString(), code: product.code, name: product.name,
         action: action,
-        user: currentUser.charAt(0).toUpperCase()+currentUser.slice(1)
+        user: currentUser
       });
       saveTransactions();
       showScanAlert(`<strong>${product.name}</strong>: ${action} (${product.quantity} ahora)`, delta > 0 ? 'success' : 'warning');
@@ -978,7 +813,7 @@
         if (p.type === 'specific') {
           toggleSpecificStatus(p);
         } else {
-          // Por defecto, escanear un bulk descuenta 1 unidad
+          // Escanear un bulk descuenta 1 unidad
           requestBulkAdjust(code, -1);
         }
       }
@@ -987,6 +822,9 @@
       document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
       document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
     }
+
+    // Inicializar aplicación
+    initApp();
   </script>
 </body>
 </html>
