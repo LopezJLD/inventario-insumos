@@ -34,6 +34,24 @@
     }
     .app-hidden { display: none !important; }
 
+    /* Login */
+    #login-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1e2a38, #2c3e50);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; padding: 16px;
+    }
+    .login-card {
+      width: 100%; max-width: 400px; background: #fff;
+      border-radius: 18px; padding: 28px 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .login-card .login-icon {
+      width: 54px; height: 54px; background: #fff3e8;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; font-size: 1.5rem; color: var(--color-primary);
+    }
+
     .navbar {
       background: var(--color-secondary); box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       min-height: 56px;
@@ -53,6 +71,10 @@
     }
     .navbar .nav-link.active {
       background: rgba(240,123,38,0.25) !important; color: #fff !important;
+    }
+    #logout-btn {
+      border-radius: 10px; padding: 6px 14px; font-size: 0.85rem;
+      border: 1.5px solid rgba(255,255,255,0.5); color: #fff; background: transparent;
     }
 
     @media (max-width: 991px) {
@@ -76,6 +98,10 @@
         margin: 4px 0;
         padding: 12px;
         font-size: 1rem;
+      }
+      #logout-btn {
+        width: 90%;
+        margin: 4px 0;
       }
     }
 
@@ -127,7 +153,32 @@
   </style>
 </head>
 <body>
-  <div id="app-container">
+  <!-- Pantalla de Login -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-icon"><i class="fas fa-hard-hat"></i></div>
+      <h5 class="text-center fw-bold mb-1">Insumos Sucor</h5>
+      <p class="text-center text-muted small mb-3">Inicia sesión para continuar</p>
+      <form id="login-form">
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Email</label>
+          <input type="email" class="form-control" id="login-email" placeholder="correo@ejemplo.cl" required autocomplete="off">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Contraseña</label>
+          <input type="password" class="form-control" id="login-password" placeholder="••••••" required autocomplete="off">
+        </div>
+        <div id="login-error" class="text-danger small mb-2" style="display:none;">
+          <i class="fas fa-exclamation-circle"></i> Credenciales incorrectas.
+        </div>
+        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-arrow-right-to-bracket me-2"></i>Ingresar</button>
+        <button type="button" id="register-btn" class="btn btn-outline-secondary w-100 mt-2">Registrarse</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Aplicación -->
+  <div id="app-container" class="app-hidden">
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container-fluid">
         <span class="navbar-brand"><i class="fas fa-hard-hat"></i> Insumos Sucor</span>
@@ -141,6 +192,10 @@
             <li class="nav-item"><button class="nav-link page-link" data-page="add"><i class="fas fa-plus-circle"></i> Agregar</button></li>
             <li class="nav-item"><button class="nav-link page-link" data-page="reports"><i class="fas fa-chart-bar"></i> Reportes</button></li>
           </ul>
+          <div class="d-flex align-items-center">
+            <span id="current-user-display" class="text-white me-2 small"><i class="fas fa-user-circle me-1"></i><span id="username-label"></span></span>
+            <button id="logout-btn" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i> Salir</button>
+          </div>
         </div>
       </div>
     </nav>
@@ -441,12 +496,10 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    // ⚠️ REEMPLAZA con tu anon key (Settings → API → anon public)
     const supabaseUrl = 'https://eekyijmucphbmcrvtunb.supabase.co';
     const supabaseAnonKey = 'sb_publishable_VVLECdZbLTF6kveXN5Jz2g_6zb-3QA-';
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const currentUser = "sistema";
     let products = [];
     let transactions = [];
     let pendingAction = null;
@@ -454,9 +507,108 @@
     let editingCode = null;
     let dataLoaded = false;
     let scannerInitialized = false;
+    let currentUser = null;
+
+    // Elementos de autenticación
+    const loginScreen = document.getElementById('login-screen');
+    const appContainer = document.getElementById('app-container');
+    const loginForm = document.getElementById('login-form');
+    const loginEmail = document.getElementById('login-email');
+    const loginPassword = document.getElementById('login-password');
+    const loginError = document.getElementById('login-error');
+    const registerBtn = document.getElementById('register-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const usernameLabel = document.getElementById('username-label');
+
+    // ---------- AUTH ----------
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        loginError.style.display = 'block';
+        return;
+      }
+      loginError.style.display = 'none';
+    }
+
+    async function handleRegister() {
+      const email = prompt('Ingresa tu email para registrarte:');
+      if (!email) return;
+      const password = prompt('Crea una contraseña (mínimo 6 caracteres):');
+      if (!password || password.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres.');
+        return;
+      }
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        alert('Error al registrarse: ' + error.message);
+        return;
+      }
+      alert('Registro exitoso. Si la confirmación de email está activada, revisa tu correo.');
+      if (data.session) {
+        // Iniciar sesión automáticamente si se devuelve sesión
+        currentUser = data.session.user.email;
+        showApp();
+        loadProducts();
+        loadTransactions();
+      }
+    }
+
+    async function logout() {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error(error);
+    }
+
+    // Observar cambios de sesión
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        currentUser = session.user.email;
+        showApp();
+        loadProducts();
+        loadTransactions();
+      } else {
+        currentUser = null;
+        showLogin();
+        products = [];
+        transactions = [];
+        renderScanInventory();
+        updateSummaryCards();
+      }
+    });
+
+    function showLogin() {
+      loginScreen.style.display = 'flex';
+      appContainer.classList.add('app-hidden');
+      if (window.stopScanner) window.stopScanner();
+    }
+
+    function showApp() {
+      loginScreen.style.display = 'none';
+      appContainer.classList.remove('app-hidden');
+      usernameLabel.textContent = currentUser;
+    }
+
+    // Eventos de autenticación
+    loginForm.addEventListener('submit', handleLogin);
+    registerBtn.addEventListener('click', handleRegister);
+    logoutBtn.addEventListener('click', logout);
 
     // ---------- INICIALIZACIÓN ----------
     function initApp() {
+      // Verificar sesión al cargar
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          currentUser = session.user.email;
+          showApp();
+          loadProducts();
+          loadTransactions();
+        } else {
+          showLogin();
+        }
+      });
+
       setupNavigation();
       setupFilters();
       setupModals();
@@ -464,9 +616,6 @@
       setupButtons();
       window.showPage('scan');
       cerrarMenu();
-
-      loadProducts();
-      loadTransactions();
     }
 
     function cerrarMenu() {
@@ -735,7 +884,7 @@
       if (photoFile) {
         const fileExt = photoFile.name.split('.').pop();
         const fileName = `${code}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('productos')
           .upload(fileName, photoFile);
         if (uploadError) {
