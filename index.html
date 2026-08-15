@@ -758,7 +758,7 @@
         };
       } else {
         product.quantity = parseInt(document.getElementById('new-quantity').value) || 0;
-        product.minQuantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
+        product.minquantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
         product.unit = document.getElementById('new-unit').value.trim();
       }
 
@@ -839,7 +839,7 @@
       let list = products.filter(p => {
         if (typeFilter !== 'all' && p.type !== typeFilter) return false;
         if (statusFilter === 'stock_low') {
-          if (p.type !== 'bulk' || (p.minQuantity !== undefined && p.quantity > p.minQuantity) || (p.minQuantity === undefined && p.quantity > 0)) return false;
+          if (p.type !== 'bulk' || (p.minquantity !== undefined && p.quantity > p.minquantity) || (p.minquantity === undefined && p.quantity > 0)) return false;
         } else if (statusFilter !== 'all') {
           if (p.type !== 'specific' || p.status !== statusFilter) return false;
         }
@@ -872,7 +872,7 @@
             <button class="btn btn-sm btn-outline-danger delete-btn" data-code="${p.code}"><i class="fas fa-trash"></i></button>
           `;
         } else {
-          const lowStock = (p.minQuantity !== undefined && p.quantity <= p.minQuantity);
+          const lowStock = (p.minquantity !== undefined && p.quantity <= p.minquantity);
           statusHtml = `${p.quantity} ${p.unit || ''} ${lowStock ? '<span class="badge bg-warning text-dark ms-1">Stock bajo</span>' : ''}`;
           actionsHtml = `
             <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
@@ -913,13 +913,13 @@
 
     function updateSummaryCards() {
       document.getElementById('summary-specific-taken').textContent = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
-      document.getElementById('summary-bulk-low').textContent = products.filter(p => p.type === 'bulk' && (p.minQuantity !== undefined && p.quantity <= p.minQuantity)).length;
+      document.getElementById('summary-bulk-low').textContent = products.filter(p => p.type === 'bulk' && (p.minquantity !== undefined && p.quantity <= p.minquantity)).length;
     }
 
     function renderNotifications() {
       const area = document.getElementById('notifications-area');
       area.innerHTML = '';
-      const lowStockItems = products.filter(p => p.type === 'bulk' && (p.minQuantity !== undefined && p.quantity <= p.minQuantity));
+      const lowStockItems = products.filter(p => p.type === 'bulk' && (p.minquantity !== undefined && p.quantity <= p.minquantity));
       const assignedItems = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to);
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
@@ -1050,7 +1050,7 @@
         }
       } else {
         html += `<p><strong>Cantidad:</strong> ${p.quantity} ${p.unit || ''}</p>`;
-        html += `<p><strong>Stock mínimo:</strong> ${p.minQuantity}</p>`;
+        html += `<p><strong>Stock mínimo:</strong> ${p.minquantity}</p>`;
       }
       modalBody.innerHTML = html;
       new bootstrap.Modal(document.getElementById('detailsModal')).show();
@@ -1081,7 +1081,7 @@
         }
       } else {
         document.getElementById('new-quantity').value = p.quantity;
-        document.getElementById('new-min-quantity').value = p.minQuantity;
+        document.getElementById('new-min-quantity').value = p.minquantity;
         document.getElementById('new-unit').value = p.unit || '';
       }
       toggleTypeFields();
