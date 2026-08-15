@@ -165,7 +165,7 @@
     .product-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 8px; }
     .modal-img { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 10px; }
 
-    /* ===== NUEVO ESTILO PARA TARJETAS DE INVENTARIO ===== */
+    /* ===== TARJETAS DE INVENTARIO ===== */
     .inventory-card {
       transition: transform 0.2s, box-shadow 0.2s;
       border: 1px solid #e9edf4;
@@ -192,6 +192,24 @@
       font-weight: 700;
       font-size: 0.9rem;
       color: var(--color-secondary);
+    }
+    .inventory-card .card-header .product-image {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #f1f4f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 1.5rem;
+    }
+    .inventory-card .card-header .product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .inventory-card .card-body {
       padding: 12px 16px 8px 16px;
@@ -236,23 +254,6 @@
     .inventory-card .card-footer .btn-sm {
       font-size: 0.7rem;
       padding: 2px 8px;
-    }
-    .inventory-card .photo-placeholder {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: #f1f4f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #94a3b8;
-      font-size: 1.2rem;
-    }
-    .inventory-card .photo-placeholder img {
-      width: 40px;
-      height: 40px;
-      object-fit: cover;
-      border-radius: 8px;
     }
     @media (max-width: 576px) {
       .inventory-card .card-footer .btn {
@@ -315,7 +316,7 @@
       <div id="page-scan" class="page active">
         <div class="mb-3">
           <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
-          <p class="text-muted small">Escanea o ingresa un código. Para equipos específicos se alterna Disponible/Tomado; para insumos a granel se descuenta una unidad.</p>
+          <p class="text-muted small">Escanea o ingresa un código. Para equipos se alterna Disponible/Tomado; para materiales se descuenta una unidad.</p>
         </div>
 
         <div class="row g-3 mb-4">
@@ -351,7 +352,7 @@
             <div class="summary-card clickable-card" id="card-low-stock" title="Ver stock bajo">
               <div class="icon"><i class="fas fa-exclamation-triangle text-warning"></i></div>
               <div class="value" id="summary-bulk-low">0</div>
-              <div class="label">Stock Bajo</div>
+              <div class="label">Materiales con Stock Bajo</div>
             </div>
           </div>
         </div>
@@ -364,8 +365,8 @@
           <div class="col-md-6">
             <div class="btn-group" id="type-filter-group">
               <button class="btn btn-outline-secondary type-filter-btn active" data-type="all">Todos</button>
-              <button class="btn btn-outline-secondary type-filter-btn" data-type="specific">Específicos</button>
-              <button class="btn btn-outline-secondary type-filter-btn" data-type="bulk">A Granel</button>
+              <button class="btn btn-outline-secondary type-filter-btn" data-type="specific">Equipos</button>
+              <button class="btn btn-outline-secondary type-filter-btn" data-type="bulk">Materiales</button>
             </div>
           </div>
           <div class="col-md-3">
@@ -384,7 +385,7 @@
           </div>
         </div>
 
-        <!-- CONTENEDOR DE TARJETAS (reemplaza la tabla) -->
+        <!-- CONTENEDOR DE TARJETAS -->
         <div id="inventory-cards" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           <!-- Las tarjetas se generan aquí -->
         </div>
@@ -435,8 +436,8 @@
           <div class="col-md-4">
             <label class="form-label">Tipo de producto</label>
             <select class="form-select" id="new-type">
-              <option value="specific" selected>Específico (equipo único)</option>
-              <option value="bulk">A granel (cantidad)</option>
+              <option value="specific" selected>Equipo (único)</option>
+              <option value="bulk">Material (cantidad)</option>
             </select>
           </div>
           <div class="col-md-4">
@@ -1147,82 +1148,136 @@
         const card = document.createElement('div');
         card.className = 'inventory-card';
 
-        // ---- HEADER: código y botón QR ----
+        // ---- HEADER: código a la izquierda, imagen a la derecha ----
         const header = document.createElement('div');
         header.className = 'card-header';
-        header.innerHTML = `
-          <span class="code"><i class="fas fa-hashtag me-1" style="color:var(--color-primary);"></i>${p.code}</span>
-          <button class="btn btn-sm btn-outline-secondary qr-btn" data-code="${p.code}" title="Ver QR"><i class="fas fa-qrcode"></i></button>
-        `;
+
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'code';
+        codeSpan.innerHTML = `<i class="fas fa-hashtag me-1" style="color:var(--color-primary);"></i>${p.code}`;
+        header.appendChild(codeSpan);
+
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'product-image';
+        if (p.photo_url) {
+          imgContainer.innerHTML = `<img src="${p.photo_url}" alt="${p.name}">`;
+        } else {
+          imgContainer.innerHTML = `<i class="fas fa-camera"></i>`;
+        }
+        header.appendChild(imgContainer);
         card.appendChild(header);
 
-        // ---- BODY: foto, nombre, tipo, estado, ubicación ----
+        // ---- BODY: nombre, badges, ubicación ----
         const body = document.createElement('div');
         body.className = 'card-body';
 
-        let photoHtml = '';
-        if (p.photo_url) {
-          photoHtml = `<img src="${p.photo_url}" class="product-thumb" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:8px;">`;
-        } else {
-          photoHtml = `<div class="photo-placeholder me-2"><i class="fas fa-camera"></i></div>`;
-        }
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'product-name';
+        nameDiv.textContent = p.name;
+        body.appendChild(nameDiv);
 
-        const nameHtml = `<div class="product-name">${photoHtml}${p.name}</div>`;
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'product-meta';
 
-        let statusBadge = '';
-        let locationHtml = '';
-        let extraInfo = '';
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'badge bg-secondary';
+        typeBadge.textContent = p.type === 'specific' ? 'Equipo' : 'Material';
+        metaDiv.appendChild(typeBadge);
 
         if (p.type === 'specific') {
           const statusText = p.status === 'available' ? 'Disponible' : 'Tomado';
           const badgeClass = p.status === 'available' ? 'bg-success' : 'bg-danger';
-          statusBadge = `<span class="badge ${badgeClass}">${statusText}</span>`;
-          if (p.assigned_to) statusBadge += `<span class="badge bg-secondary ms-1">${p.assigned_to}</span>`;
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `badge ${badgeClass}`;
+          statusBadge.textContent = statusText;
+          metaDiv.appendChild(statusBadge);
+          if (p.assigned_to) {
+            const assignBadge = document.createElement('span');
+            assignBadge.className = 'badge bg-secondary';
+            assignBadge.textContent = p.assigned_to;
+            metaDiv.appendChild(assignBadge);
+          }
         } else {
           const lowStock = (p.minquantity !== undefined && p.quantity <= p.minquantity);
           const badgeClass = lowStock ? 'bg-warning text-dark' : 'bg-info';
-          statusBadge = `<span class="badge ${badgeClass}">${p.quantity} ${p.unit || ''}</span>`;
-          if (lowStock) statusBadge += ` <span class="badge bg-warning text-dark">Stock bajo</span>`;
+          const qtyBadge = document.createElement('span');
+          qtyBadge.className = `badge ${badgeClass}`;
+          qtyBadge.textContent = `${p.quantity} ${p.unit || ''}`;
+          metaDiv.appendChild(qtyBadge);
+          if (lowStock) {
+            const warnBadge = document.createElement('span');
+            warnBadge.className = 'badge bg-warning text-dark';
+            warnBadge.textContent = 'Stock bajo';
+            metaDiv.appendChild(warnBadge);
+          }
         }
+        body.appendChild(metaDiv);
 
         if (p.location) {
-          locationHtml = `<div class="product-location"><i class="fas fa-map-pin me-1" style="color:var(--color-primary);"></i>${p.location}</div>`;
+          const locDiv = document.createElement('div');
+          locDiv.className = 'product-location';
+          locDiv.innerHTML = `<i class="fas fa-map-pin me-1" style="color:var(--color-primary);"></i>${p.location}`;
+          body.appendChild(locDiv);
         }
 
-        body.innerHTML = `
-          ${nameHtml}
-          <div class="product-meta">
-            <span class="badge bg-secondary">${p.type === 'specific' ? 'Específico' : 'Granel'}</span>
-            ${statusBadge}
-          </div>
-          ${locationHtml}
-        `;
         card.appendChild(body);
 
         // ---- FOOTER: botones de acción ----
         const footer = document.createElement('div');
         footer.className = 'card-footer';
 
-        // Botones según tipo
+        // Botón QR siempre presente
+        const qrBtn = document.createElement('button');
+        qrBtn.className = 'btn btn-sm btn-outline-secondary qr-btn';
+        qrBtn.dataset.code = p.code;
+        qrBtn.innerHTML = '<i class="fas fa-qrcode"></i>';
+        footer.appendChild(qrBtn);
+
         if (p.type === 'specific') {
           const toggleLabel = p.status === 'available' ? 'Tomar' : 'Devolver';
           const toggleClass = p.status === 'available' ? 'btn-outline-danger' : 'btn-outline-success';
-          footer.innerHTML = `
-            <button class="btn ${toggleClass} toggle-specific-btn" data-code="${p.code}">${toggleLabel}</button>
-            <button class="btn btn-outline-info detail-btn" data-code="${p.code}">Detalles</button>
-            <button class="btn btn-outline-primary edit-btn" data-code="${p.code}">Editar</button>
-            <button class="btn btn-outline-danger delete-btn" data-code="${p.code}">Eliminar</button>
-          `;
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = `btn ${toggleClass} toggle-specific-btn`;
+          toggleBtn.dataset.code = p.code;
+          toggleBtn.textContent = toggleLabel;
+          footer.appendChild(toggleBtn);
         } else {
-          footer.innerHTML = `
-            <button class="btn btn-outline-success adjust-bulk-plus" data-code="${p.code}"><i class="fas fa-plus"></i></button>
-            <button class="btn btn-outline-danger adjust-bulk-minus" data-code="${p.code}"><i class="fas fa-minus"></i></button>
-            <button class="btn btn-outline-primary adjust-bulk-set" data-code="${p.code}"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-outline-info detail-btn" data-code="${p.code}">Detalles</button>
-            <button class="btn btn-outline-primary edit-btn" data-code="${p.code}">Editar</button>
-            <button class="btn btn-outline-danger delete-btn" data-code="${p.code}">Eliminar</button>
-          `;
+          const plusBtn = document.createElement('button');
+          plusBtn.className = 'btn btn-outline-success adjust-bulk-plus';
+          plusBtn.dataset.code = p.code;
+          plusBtn.innerHTML = '<i class="fas fa-plus"></i>';
+          footer.appendChild(plusBtn);
+
+          const minusBtn = document.createElement('button');
+          minusBtn.className = 'btn btn-outline-danger adjust-bulk-minus';
+          minusBtn.dataset.code = p.code;
+          minusBtn.innerHTML = '<i class="fas fa-minus"></i>';
+          footer.appendChild(minusBtn);
+
+          const setBtn = document.createElement('button');
+          setBtn.className = 'btn btn-outline-primary adjust-bulk-set';
+          setBtn.dataset.code = p.code;
+          setBtn.innerHTML = '<i class="fas fa-edit"></i>';
+          footer.appendChild(setBtn);
         }
+
+        const detailBtn = document.createElement('button');
+        detailBtn.className = 'btn btn-outline-info detail-btn';
+        detailBtn.dataset.code = p.code;
+        detailBtn.textContent = 'Detalles';
+        footer.appendChild(detailBtn);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-outline-primary edit-btn';
+        editBtn.dataset.code = p.code;
+        editBtn.textContent = 'Editar';
+        footer.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-outline-danger delete-btn';
+        deleteBtn.dataset.code = p.code;
+        deleteBtn.textContent = 'Eliminar';
+        footer.appendChild(deleteBtn);
 
         card.appendChild(footer);
 
@@ -1254,7 +1309,7 @@
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-warning';
-        alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Stock bajo:</strong> ${lowStockItems.map(p => p.name).join(', ')}`;
+        alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Material con stock bajo:</strong> ${lowStockItems.map(p => p.name).join(', ')}`;
         area.appendChild(alertDiv);
       }
       if (assignedItems.length > 0) {
@@ -1366,7 +1421,7 @@
       if (p.photo_url) html += `<img src="${p.photo_url}" class="modal-img">`;
       html += `<p><strong>Código:</strong> ${p.code}</p>`;
       html += `<p><strong>Nombre:</strong> ${p.name}</p>`;
-      html += `<p><strong>Tipo:</strong> ${p.type === 'specific' ? 'Específico' : 'A granel'}</p>`;
+      html += `<p><strong>Tipo:</strong> ${p.type === 'specific' ? 'Equipo' : 'Material'}</p>`;
       if (p.location) html += `<p><strong>Ubicación:</strong> ${p.location}</p>`;
       if (p.created_by) html += `<p><strong>Agregado por:</strong> ${p.created_by}</p>`;
       if (p.type === 'specific') {
@@ -1499,7 +1554,7 @@
     function exportInventoryCSV() {
       let csv = 'Código,Nombre,Tipo,Estado/Cantidad,Ubicación,Asignado,Foto,Creado por\n';
       products.forEach(p => {
-        let row = [p.code, p.name, p.type === 'specific' ? 'Específico' : 'Granel'];
+        let row = [p.code, p.name, p.type === 'specific' ? 'Equipo' : 'Material'];
         if (p.type === 'specific') row.push(p.status === 'available' ? 'Disponible' : 'Tomado');
         else row.push(p.quantity + ' ' + (p.unit || ''));
         row.push(p.location || '');
@@ -1588,7 +1643,6 @@
     }
 
     function printLabels() {
-      // Función simple para imprimir etiquetas QR
       const codes = products.map(p => p.code);
       if (codes.length === 0) { alert('No hay productos para imprimir etiquetas'); return; }
       const win = window.open('', '_blank', 'width=800,height=600');
@@ -1615,7 +1669,6 @@
       });
       win.document.write('</body></html>');
       win.document.close();
-      // Esperar a que se cargue y luego generar QR con script en la ventana
       win.addEventListener('load', () => {
         codes.forEach(code => {
           const container = win.document.getElementById(`qr-${code}`);
