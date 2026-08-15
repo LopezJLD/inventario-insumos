@@ -442,7 +442,7 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Código único</label>
-            <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
+            <input type="text" class="form-control" id="new-code" placeholder="Se generará automáticamente" readonly>
           </div>
           <div class="col-md-4">
             <label class="form-label">Nombre</label>
@@ -950,11 +950,15 @@
     }
 
     function setupForm() {
-      document.getElementById('new-type').addEventListener('change', toggleTypeFields);
+      document.getElementById('new-type').addEventListener('change', () => {
+        toggleTypeFields();
+        if (!editingCode) generateNewCode();
+      });
       document.getElementById('add-product-form').addEventListener('submit', handleFormSubmit);
       document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
       document.getElementById('new-photo').addEventListener('change', previewPhoto);
       toggleTypeFields();
+      generateNewCode(); // Genera código inicial
     }
 
     function setupButtons() {
@@ -980,6 +984,18 @@
       const type = document.getElementById('new-type').value;
       document.getElementById('specific-fields').style.display = type === 'specific' ? 'block' : 'none';
       document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
+    }
+
+    function generateNewCode() {
+      const type = document.getElementById('new-type').value;
+      const prefix = type === 'specific' ? 'EQ' : 'MA';
+      let code = '';
+      do {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+        code = `${prefix}-${timestamp}-${random}`;
+      } while (products.some(p => p.code === code));
+      document.getElementById('new-code').value = code;
     }
 
     function previewPhoto() {
@@ -1077,6 +1093,7 @@
       document.getElementById('add-product-form').reset();
       document.getElementById('photo-preview').innerHTML = '';
       toggleTypeFields();
+      generateNewCode(); // Regenera código tras reset
     }
 
     // ---------- CARGAR DATOS ----------
@@ -1550,7 +1567,7 @@
       if (sorted.length === 0) reportTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>';
     }
 
-    // Funciones de exportación, impresión, etc. (sin cambios)
+    // Funciones de exportación, impresión, etc.
     function exportInventoryCSV() {
       let csv = 'Código,Nombre,Tipo,Estado/Cantidad,Ubicación,Asignado,Foto,Creado por\n';
       products.forEach(p => {
