@@ -133,6 +133,7 @@
     .btn-primary:hover { background: var(--color-primary-hover); }
     .badge.bg-success { background: #d1fae5 !important; color: #065f46 !important; }
     .badge.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
+    .badge.bg-warning { background: #fef3c7 !important; color: #92400e !important; }
     .table {
       border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);
       background: #fff; font-size: 0.9rem;
@@ -159,6 +160,20 @@
     .app-footer {
       background: var(--color-secondary); color: #94a3b8;
       font-size: 0.8rem; padding: 14px 0; text-align: center; margin-top: 30px;
+    }
+    /* Summary cards */
+    .summary-card {
+      background: #fff; border-radius: var(--border-radius); padding: 16px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .summary-card .icon {
+      font-size: 2rem; color: var(--color-primary);
+    }
+    .summary-card .value {
+      font-size: 1.8rem; font-weight: 700; margin: 4px 0;
+    }
+    .summary-card .label {
+      font-size: 0.85rem; color: #64748b;
     }
   </style>
 </head>
@@ -213,7 +228,39 @@
       <div id="page-scan" class="page active">
         <div class="mb-3">
           <h2 class="fw-bold"><i class="fas fa-exchange-alt me-2" style="color:var(--color-primary);"></i>Registro de Entrada y Salida</h2>
-          <p class="text-muted small">Escanea o ingresa un código. El estado cambia automáticamente: <span class="badge bg-success">Disponible</span> ↔ <span class="badge bg-danger">Tomado</span></p>
+          <p class="text-muted small">Escanea o ingresa un código. Para equipos específicos se alterna Disponible/Tomado; para insumos a granel se descuenta una unidad.</p>
+        </div>
+
+        <!-- Resumen -->
+        <div class="row g-3 mb-4" id="summary-cards">
+          <div class="col-6 col-md-3">
+            <div class="summary-card">
+              <div class="icon"><i class="fas fa-tools"></i></div>
+              <div class="value" id="summary-specific-available">0</div>
+              <div class="label">Equipos Disponibles</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="summary-card">
+              <div class="icon"><i class="fas fa-user-check"></i></div>
+              <div class="value" id="summary-specific-taken">0</div>
+              <div class="label">Equipos Tomados</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="summary-card">
+              <div class="icon"><i class="fas fa-boxes"></i></div>
+              <div class="value" id="summary-bulk-total">0</div>
+              <div class="label">Insumos a Granel</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="summary-card">
+              <div class="icon"><i class="fas fa-exclamation-triangle text-warning"></i></div>
+              <div class="value" id="summary-bulk-low">0</div>
+              <div class="label">Stock Bajo</div>
+            </div>
+          </div>
         </div>
 
         <div class="row g-3 mb-4">
@@ -240,13 +287,20 @@
         <h3 class="fw-bold mb-3"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
         <div class="row g-2 mb-3">
           <div class="col-md-6">
-            <div class="btn-group">
-              <button class="btn btn-outline-secondary scan-filter-btn active" data-filter="all">Todos</button>
-              <button class="btn btn-outline-secondary scan-filter-btn" data-filter="available">Disponibles</button>
-              <button class="btn btn-outline-secondary scan-filter-btn" data-filter="taken">Tomados</button>
+            <div class="btn-group" id="type-filter-group">
+              <button class="btn btn-outline-secondary type-filter-btn active" data-type="all">Todos</button>
+              <button class="btn btn-outline-secondary type-filter-btn" data-type="specific">Específicos</button>
+              <button class="btn btn-outline-secondary type-filter-btn" data-type="bulk">A Granel</button>
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-3">
+            <div class="btn-group" id="status-filter-group">
+              <button class="btn btn-outline-secondary status-filter-btn active" data-status="all">Todos</button>
+              <button class="btn btn-outline-secondary status-filter-btn" data-status="available">Disponibles</button>
+              <button class="btn btn-outline-secondary status-filter-btn" data-status="taken">Tomados</button>
+            </div>
+          </div>
+          <div class="col-md-3">
             <div class="search-box position-relative">
               <input type="text" class="form-control" id="search-input" placeholder="Buscar código o nombre...">
               <i class="fas fa-times clear-search position-absolute top-50 end-0 translate-middle-y me-2 text-muted" id="clear-search-btn" style="display:none; cursor:pointer;"></i>
@@ -255,7 +309,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle" id="scan-inventory-table">
-            <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th style="min-width:170px;">Acciones</th></tr></thead>
+            <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th id="col-status">Estado</th><th style="min-width:170px;">Acciones</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -278,6 +332,13 @@
         <h2 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto</h2>
         <form id="add-product-form" class="row g-3" novalidate>
           <div class="col-md-4">
+            <label class="form-label">Tipo de producto</label>
+            <select class="form-select" id="new-type">
+              <option value="specific" selected>Específico (equipo único)</option>
+              <option value="bulk">A granel (cantidad)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
             <label class="form-label">Código único</label>
             <input type="text" class="form-control" id="new-code" placeholder="PROD-010" required>
           </div>
@@ -285,15 +346,44 @@
             <label class="form-label">Nombre</label>
             <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador" required>
           </div>
-          <div class="col-md-2">
-            <label class="form-label">Estado inicial</label>
-            <select class="form-select" id="new-status">
-              <option value="available">Disponible</option>
-              <option value="taken">Tomado</option>
-            </select>
+
+          <!-- Campos para específico -->
+          <div id="specific-fields" class="col-12">
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">Descripción / componentes</label>
+                <textarea class="form-control" id="new-description" rows="3" placeholder="Detalles del equipo, número de serie, componentes..."></textarea>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Estado inicial</label>
+                <select class="form-select" id="new-status">
+                  <option value="available">Disponible</option>
+                  <option value="taken">Tomado</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Agregar</button>
+
+          <!-- Campos para bulk -->
+          <div id="bulk-fields" class="col-12" style="display:none;">
+            <div class="row">
+              <div class="col-md-3">
+                <label class="form-label">Cantidad inicial</label>
+                <input type="number" class="form-control" id="new-quantity" min="0" value="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Stock mínimo (alerta)</label>
+                <input type="number" class="form-control" id="new-min-quantity" min="0" value="5">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Unidad de medida</label>
+                <input type="text" class="form-control" id="new-unit" placeholder="unidades, cajas, litros...">
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 d-flex">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Agregar</button>
           </div>
         </form>
         <button id="reset-demo-btn" class="btn btn-outline-warning btn-sm mt-4"><i class="fas fa-sync-alt"></i> Reiniciar datos demo</button>
@@ -308,7 +398,7 @@
   <div class="modal fade" id="confirmToggleModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Confirmar cambio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header"><h5 class="modal-title">Confirmar acción</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body" id="confirmToggleBody"></div>
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -322,6 +412,26 @@
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Código QR</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body d-flex justify-content-center" id="qr-modal-body"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal para ajustar cantidad bulk -->
+  <div class="modal fade" id="adjustQuantityModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Ajustar cantidad</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <p id="adjust-quantity-info"></p>
+          <div class="input-group">
+            <button class="btn btn-outline-secondary" id="adjust-minus">-</button>
+            <input type="number" class="form-control text-center" id="adjust-quantity-input" min="0">
+            <button class="btn btn-outline-secondary" id="adjust-plus">+</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="adjust-quantity-save">Guardar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -348,7 +458,7 @@
 
     let products = [];
     let transactions = [];
-    let pendingToggle = null;
+    let pendingAction = null; // {type: 'specific-toggle'|'bulk-adjust', code: string, delta?: number}
     let currentUser = null;
     let appInitialized = false;
 
@@ -357,44 +467,51 @@
     };
 
     const DEMO_PRODUCTS = [
-      { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", status: "available" },
-      { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", status: "available" },
-      { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", status: "available" },
-      { code: "22KVA", name: "Concox GT06N", status: "available" },
-      { code: "111-GSW15P-2622368", name: "Concox GT06N", status: "available" },
-      { code: "112-GSW15Y-2670398", name: "Concox GT06N", status: "available" },
-      { code: "113-GSW22P-2677872", name: "Concox JM-VL03", status: "available" },
-      { code: "114-GSW22P-2675692", name: "Concox GT06N", status: "available" },
-      { code: "115-25KVA-5763919", name: "Coban GPS303-C", status: "available" },
-      { code: "116-25KVA-5783893", name: "Eelink TK418", status: "available" },
-      { code: "117-35KVA-3911640", name: "Concox GT06N", status: "available" },
-      { code: "118-35KVA-3911639", name: "Concox JM-VL03", status: "available" },
-      { code: "119-35KVA-3889657", name: "Concox GT06N", status: "available" },
-      { code: "122-GSW30-2677188", name: "Concox GT06N", status: "available" },
-      { code: "125-GPW45-2678664", name: "Concox JM-VL03", status: "available" },
-      { code: "127-GSW80P-2670415", name: "Concox JM-VL03", status: "available" },
-      { code: "130-GSW110P-0006943", name: "Concox GT06N", status: "available" },
-      { code: "131-3366PRO212", name: "Concox JM-VL03", status: "available" },
-      { code: "133-1391PRO2V15", name: "Concox JM-VL03", status: "available" },
-      { code: "135-7000662", name: "Gosafe G1C", status: "available" },
-      { code: "136-7001074", name: "Coban GPS303-C", status: "available" },
-      { code: "137-7001077", name: "Coban GPS303-C", status: "available" },
-      { code: "138-7001086", name: "Gosafe G1C", status: "available" },
-      { code: "139-7001088", name: "Concox JM-VL03", status: "available" },
-      { code: "140-7001971", name: "Gosafe G1C", status: "available" },
-      { code: "141-7001972", name: "Gosafe G1C", status: "available" },
-      { code: "142-7001986", name: "Gosafe G1C", status: "available" },
-      { code: "143-7002348", name: "Concox GT06N", status: "available" },
-      { code: "144-7002578", name: "Coban GPS303-C", status: "available" },
-      { code: "145-7002580", name: "Concox GT06N", status: "available" },
-      { code: "146-7002195", name: "Concox GT06N", status: "available" },
-      { code: "147-7000676", name: "Concox GT06N", status: "available" },
-      { code: "148-7002219", name: "Concox GT06N", status: "available" },
-      { code: "150-BMP-8500 33006", name: "Gosafe G1C", status: "available" },
-      { code: "151-BMP-8500 32300", name: "Concox JM-VL03", status: "available" },
-      { code: "152-BMP-8500 33071", name: "Gosafe G1C", status: "available" },
-      { code: "153-BMP-8500 33062", name: "Gosafe G1C", status: "available" },
-      { code: "154-ARR1575", name: "Eelink TK418", status: "available" }
+      // Específicos
+      { code: "1-TK915 9051070709", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
+      { code: "2-TK915 9051069548", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
+      { code: "3-TK915 9051069537", name: "TK-Star TK918-4G", type: "specific", description: "GPS con batería de litio, cables, antena", status: "available" },
+      { code: "22KVA", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "111-GSW15P-2622368", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "112-GSW15Y-2670398", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "113-GSW22P-2677872", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "114-GSW22P-2675692", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "115-25KVA-5763919", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "116-25KVA-5783893", name: "Eelink TK418", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "117-35KVA-3911640", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "118-35KVA-3911639", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "119-35KVA-3889657", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "122-GSW30-2677188", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "125-GPW45-2678664", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "127-GSW80P-2670415", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "130-GSW110P-0006943", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "131-3366PRO212", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "133-1391PRO2V15", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "135-7000662", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "136-7001074", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "137-7001077", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "138-7001086", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "139-7001088", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "140-7001971", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "141-7001972", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "142-7001986", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "143-7002348", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "144-7002578", name: "Coban GPS303-C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "145-7002580", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "146-7002195", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "147-7000676", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "148-7002219", name: "Concox GT06N", type: "specific", description: "Rastreador GPS para vehículo", status: "available" },
+      { code: "150-BMP-8500 33006", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "151-BMP-8500 32300", name: "Concox JM-VL03", type: "specific", description: "Rastreador GPS para camión", status: "available" },
+      { code: "152-BMP-8500 33071", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "153-BMP-8500 33062", name: "Gosafe G1C", type: "specific", description: "Rastreador GPS", status: "available" },
+      { code: "154-ARR1575", name: "Eelink TK418", type: "specific", description: "Rastreador GPS", status: "available" },
+      // A granel
+      { code: "FILTRO-AIRE-001", name: "Filtro de aire", type: "bulk", quantity: 25, minQuantity: 5, unit: "unidades" },
+      { code: "ACEITE-15W40", name: "Aceite 15W40", type: "bulk", quantity: 12, minQuantity: 3, unit: "bidones" },
+      { code: "FILTRO-ACEITE-001", name: "Filtro de aceite", type: "bulk", quantity: 30, minQuantity: 8, unit: "unidades" },
+      { code: "GUANTES-TALLA-L", name: "Guantes talla L", type: "bulk", quantity: 100, minQuantity: 20, unit: "pares" },
+      { code: "CASCO-BLANCO", name: "Casco de seguridad blanco", type: "bulk", quantity: 15, minQuantity: 4, unit: "unidades" },
     ];
 
     // ---------- LOGIN ----------
@@ -477,6 +594,7 @@
           set(productsRef, products).catch(() => {});
         }
         renderScanInventory();
+        updateSummaryCards();
       });
 
       // Cargar transacciones
@@ -501,6 +619,10 @@
         navLinks.forEach(l => l.classList.remove('active'));
         document.querySelector(`.page-link[data-page="${pageId}"]`)?.classList.add('active');
         if (pageId === 'history') renderHistory();
+        if (pageId === 'scan') {
+          renderScanInventory();
+          updateSummaryCards();
+        }
         
         // Cerrar el menú colapsable si está abierto
         if (bsCollapse && navbarCollapse.classList.contains('show')) {
@@ -520,12 +642,21 @@
       initScanner();
       window.showPage('scan');
 
-      // Filtros
-      document.querySelectorAll('.scan-filter-btn').forEach(btn => {
+      // Filtros de tipo
+      document.querySelectorAll('.type-filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-          document.querySelectorAll('.scan-filter-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
           this.classList.add('active');
-          renderScanInventory(this.dataset.filter, currentSearchText);
+          renderScanInventory();
+        });
+      });
+
+      // Filtros de estado (solo aplica a específicos)
+      document.querySelectorAll('.status-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          renderScanInventory();
         });
       });
 
@@ -534,16 +665,53 @@
       const clearBtn = document.getElementById('clear-search-btn');
       searchInput.addEventListener('input', () => {
         clearBtn.style.display = searchInput.value ? 'block' : 'none';
-        renderScanInventory(currentScanFilter, searchInput.value);
+        renderScanInventory();
       });
       clearBtn.addEventListener('click', () => {
         searchInput.value = ''; clearBtn.style.display = 'none';
-        renderScanInventory(currentScanFilter, '');
+        renderScanInventory();
       });
 
-      // Confirmar toggle
+      // Confirmar acción genérica (toggle específico o ajuste bulk)
       document.getElementById('confirmToggleBtn').addEventListener('click', () => {
-        if (pendingToggle) { manualToggle(pendingToggle); pendingToggle = null; bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide(); }
+        if (pendingAction) {
+          if (pendingAction.type === 'specific-toggle') {
+            const p = products.find(x => x.code === pendingAction.code);
+            if (p) toggleSpecificStatus(p);
+          } else if (pendingAction.type === 'bulk-adjust') {
+            const p = products.find(x => x.code === pendingAction.code);
+            if (p) adjustBulkQuantity(p, pendingAction.delta);
+          }
+          pendingAction = null;
+          bootstrap.Modal.getInstance(document.getElementById('confirmToggleModal')).hide();
+        }
+      });
+
+      // Modal ajuste cantidad bulk
+      const adjustModal = document.getElementById('adjustQuantityModal');
+      document.getElementById('adjust-plus').addEventListener('click', () => {
+        const input = document.getElementById('adjust-quantity-input');
+        input.value = parseInt(input.value) + 1;
+      });
+      document.getElementById('adjust-minus').addEventListener('click', () => {
+        const input = document.getElementById('adjust-quantity-input');
+        input.value = Math.max(0, parseInt(input.value) - 1);
+      });
+      document.getElementById('adjust-quantity-save').addEventListener('click', () => {
+        const code = pendingAction?.code;
+        if (code) {
+          const p = products.find(x => x.code === code);
+          if (p) {
+            const newQty = parseInt(document.getElementById('adjust-quantity-input').value);
+            if (!isNaN(newQty) && newQty >= 0) {
+              // Calcular diferencia para historial
+              const delta = newQty - p.quantity;
+              adjustBulkQuantity(p, delta);
+              pendingAction = null;
+              bootstrap.Modal.getInstance(adjustModal).hide();
+            }
+          }
+        }
       });
 
       // Limpiar historial
@@ -555,56 +723,135 @@
       document.getElementById('add-product-form').addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
+        const type = document.getElementById('new-type').value;
         const code = document.getElementById('new-code').value.trim().toUpperCase();
         const name = document.getElementById('new-name').value.trim();
-        const status = document.getElementById('new-status').value;
         if (products.some(p => p.code === code)) { alert('Código existente.'); return; }
-        products.push({ code, name, status }); saveProducts();
-        this.reset(); this.classList.remove('was-validated');
+
+        let newProduct = { code, name, type };
+        if (type === 'specific') {
+          newProduct.description = document.getElementById('new-description').value.trim();
+          newProduct.status = document.getElementById('new-status').value;
+        } else {
+          newProduct.quantity = parseInt(document.getElementById('new-quantity').value) || 0;
+          newProduct.minQuantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
+          newProduct.unit = document.getElementById('new-unit').value.trim();
+        }
+        products.push(newProduct);
+        saveProducts();
+        this.reset();
+        this.classList.remove('was-validated');
+        // Mostrar campos correspondientes al tipo por defecto
+        toggleTypeFields();
       });
 
-      // Reiniciar demo
+      // Reset demo
       document.getElementById('reset-demo-btn').addEventListener('click', () => {
         if (confirm('¿Reemplazar con datos demo?')) { products = [...DEMO_PRODUCTS]; saveProducts(); }
       });
+
+      // Mostrar/ocultar campos según tipo en formulario
+      const newTypeSelect = document.getElementById('new-type');
+      newTypeSelect.addEventListener('change', toggleTypeFields);
+      toggleTypeFields(); // inicial
+    }
+
+    function toggleTypeFields() {
+      const type = document.getElementById('new-type').value;
+      document.getElementById('specific-fields').style.display = type === 'specific' ? 'block' : 'none';
+      document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
     }
 
     // ---------- FUNCIONES ----------
     function saveProducts() { set(productsRef, products).catch(() => {}); }
     function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
-    let currentScanFilter = 'all', currentSearchText = '';
+    let currentTypeFilter = 'all';
+    let currentStatusFilter = 'all';
+    let currentSearchText = '';
 
-    function renderScanInventory(filter = currentScanFilter, searchText = currentSearchText) {
-      currentScanFilter = filter; currentSearchText = searchText;
+    function renderScanInventory() {
+      const typeFilter = document.querySelector('.type-filter-btn.active')?.dataset.type || 'all';
+      const statusFilter = document.querySelector('.status-filter-btn.active')?.dataset.status || 'all';
+      const searchText = document.getElementById('search-input').value.trim().toLowerCase();
+      
       const tbody = document.querySelector('#scan-inventory-table tbody');
+      const colStatus = document.getElementById('col-status');
       if (!tbody) return;
       tbody.innerHTML = '';
+
       let list = products.filter(p => {
-        if (filter === 'available') return p.status === 'available';
-        if (filter === 'taken') return p.status === 'taken';
+        // Filtro por tipo
+        if (typeFilter !== 'all' && p.type !== typeFilter) return false;
+        // Filtro por estado solo aplica a specific
+        if (p.type === 'specific' && statusFilter !== 'all' && p.status !== statusFilter) return false;
+        // Búsqueda
+        if (searchText && !p.code.toLowerCase().includes(searchText) && !p.name.toLowerCase().includes(searchText)) return false;
         return true;
       });
-      if (searchText.trim()) {
-        const s = searchText.trim().toLowerCase();
-        list = list.filter(p => p.code.toLowerCase().includes(s) || p.name.toLowerCase().includes(s));
+
+      // Ajustar encabezado según filtro de tipo
+      if (typeFilter === 'bulk') {
+        colStatus.textContent = 'Cantidad';
+      } else if (typeFilter === 'specific') {
+        colStatus.textContent = 'Estado';
+      } else {
+        colStatus.textContent = 'Tipo/Estado';
       }
+
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No se encontraron productos</td></tr>';
         return;
       }
+
       list.forEach(p => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><code>${p.code}</code></td><td>${p.name}</td>
-          <td><span class="badge ${p.status==='available'?'bg-success':'bg-danger'}">${p.status==='available'?'Disponible':'Tomado'}</span></td>
-          <td>
+        let statusHtml = '';
+        let actionsHtml = '';
+
+        if (p.type === 'specific') {
+          statusHtml = `<span class="badge ${p.status==='available'?'bg-success':'bg-danger'}">${p.status==='available'?'Disponible':'Tomado'}</span>`;
+          actionsHtml = `
             <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
-            <button class="btn btn-sm ${p.status==='available'?'btn-outline-danger':'btn-outline-success'} toggle-btn" data-code="${p.code}"><i class="fas ${p.status==='available'?'fa-arrow-right':'fa-undo-alt'} me-1"></i>${p.status==='available'?'Tomar':'Devolver'}</button>
-          </td>`;
+            <button class="btn btn-sm ${p.status==='available'?'btn-outline-danger':'btn-outline-success'} toggle-specific-btn" data-code="${p.code}"><i class="fas ${p.status==='available'?'fa-arrow-right':'fa-undo-alt'} me-1"></i>${p.status==='available'?'Tomar':'Devolver'}</button>
+          `;
+        } else { // bulk
+          const lowStock = p.quantity <= p.minQuantity;
+          statusHtml = `${p.quantity} ${p.unit || ''} ${lowStock ? '<span class="badge bg-warning text-dark ms-1">Stock bajo</span>' : ''}`;
+          actionsHtml = `
+            <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
+            <button class="btn btn-sm btn-outline-success adjust-bulk-plus me-1" data-code="${p.code}"><i class="fas fa-plus"></i></button>
+            <button class="btn btn-sm btn-outline-danger adjust-bulk-minus" data-code="${p.code}"><i class="fas fa-minus"></i></button>
+            <button class="btn btn-sm btn-outline-primary adjust-bulk-set" data-code="${p.code}"><i class="fas fa-edit"></i></button>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td><code>${p.code}</code></td>
+          <td>${p.name}</td>
+          <td><span class="badge bg-secondary">${p.type === 'specific' ? 'Específico' : 'Granel'}</span></td>
+          <td>${statusHtml}</td>
+          <td>${actionsHtml}</td>
+        `;
         tbody.appendChild(tr);
       });
+
+      // Asignar eventos
       document.querySelectorAll('#scan-inventory-table .qr-btn').forEach(b => b.addEventListener('click', () => showQrModal(b.dataset.code)));
-      document.querySelectorAll('#scan-inventory-table .toggle-btn').forEach(b => b.addEventListener('click', () => requestManualToggle(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .toggle-specific-btn').forEach(b => b.addEventListener('click', () => requestToggleSpecific(b.dataset.code)));
+      document.querySelectorAll('#scan-inventory-table .adjust-bulk-plus').forEach(b => b.addEventListener('click', () => requestBulkAdjust(b.dataset.code, 1)));
+      document.querySelectorAll('#scan-inventory-table .adjust-bulk-minus').forEach(b => b.addEventListener('click', () => requestBulkAdjust(b.dataset.code, -1)));
+      document.querySelectorAll('#scan-inventory-table .adjust-bulk-set').forEach(b => b.addEventListener('click', () => openAdjustModal(b.dataset.code)));
+    }
+
+    function updateSummaryCards() {
+      const specificAvailable = products.filter(p => p.type === 'specific' && p.status === 'available').length;
+      const specificTaken = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
+      const bulkTotal = products.filter(p => p.type === 'bulk').length;
+      const bulkLow = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity).length;
+      document.getElementById('summary-specific-available').textContent = specificAvailable;
+      document.getElementById('summary-specific-taken').textContent = specificTaken;
+      document.getElementById('summary-bulk-total').textContent = bulkTotal;
+      document.getElementById('summary-bulk-low').textContent = bulkLow;
     }
 
     function showQrModal(code) {
@@ -613,19 +860,15 @@
       new bootstrap.Modal(document.getElementById('qrModal')).show();
     }
 
-    function requestManualToggle(code) {
-      const p = products.find(x => x.code === code); if(!p) return;
+    function requestToggleSpecific(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
       document.getElementById('confirmToggleBody').innerHTML = `¿Cambiar estado de <strong>${p.name}</strong> (${p.code})?`;
-      pendingToggle = code;
+      pendingAction = { type: 'specific-toggle', code };
       new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
     }
 
-    function manualToggle(code) {
-      const p = products.find(x => x.code === code); if(!p) return;
-      toggleProductStatus(p);
-    }
-
-    function toggleProductStatus(product) {
+    function toggleSpecificStatus(product) {
       const newStatus = product.status === 'available' ? 'taken' : 'available';
       product.status = newStatus;
       saveProducts();
@@ -635,27 +878,75 @@
         user: currentUser.charAt(0).toUpperCase()+currentUser.slice(1)
       });
       saveTransactions();
-      const alertDiv = document.getElementById('scan-result');
-      if(alertDiv) {
-        alertDiv.style.display='block';
-        alertDiv.className = `alert mt-3 ${newStatus==='taken'?'alert-warning':'alert-success'}`;
-        alertDiv.innerHTML = `<i class="fas ${newStatus==='taken'?'fa-arrow-right':'fa-undo-alt'}"></i> <strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`;
-      }
+      showScanAlert(`<strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`, newStatus==='taken'?'warning':'success');
       renderScanInventory();
+      updateSummaryCards();
+    }
+
+    function requestBulkAdjust(code, delta) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      const newQty = p.quantity + delta;
+      if (newQty < 0) {
+        alert('No se puede reducir por debajo de 0');
+        return;
+      }
+      const actionText = delta > 0 ? 'agregar' : 'retirar';
+      document.getElementById('confirmToggleBody').innerHTML = `¿${actionText} <strong>${Math.abs(delta)}</strong> unidad(es) de <strong>${p.name}</strong>? (Actual: ${p.quantity})`;
+      pendingAction = { type: 'bulk-adjust', code, delta };
+      new bootstrap.Modal(document.getElementById('confirmToggleModal')).show();
+    }
+
+    function openAdjustModal(code) {
+      const p = products.find(x => x.code === code);
+      if (!p) return;
+      pendingAction = { type: 'bulk-adjust', code }; // solo para guardar el código
+      document.getElementById('adjust-quantity-info').innerHTML = `Ajustar cantidad de <strong>${p.name}</strong> (${p.code})`;
+      document.getElementById('adjust-quantity-input').value = p.quantity;
+      new bootstrap.Modal(document.getElementById('adjustQuantityModal')).show();
+    }
+
+    function adjustBulkQuantity(product, delta) {
+      if (delta === 0) return;
+      const newQuantity = product.quantity + delta;
+      if (newQuantity < 0) return;
+      product.quantity = newQuantity;
+      saveProducts();
+      const action = delta > 0 ? `Entrada de ${delta} ${product.unit || 'unidad(es)'}` : `Salida de ${Math.abs(delta)} ${product.unit || 'unidad(es)'}`;
+      transactions.unshift({
+        date: new Date().toISOString(), code: product.code, name: product.name,
+        action: action,
+        user: currentUser.charAt(0).toUpperCase()+currentUser.slice(1)
+      });
+      saveTransactions();
+      showScanAlert(`<strong>${product.name}</strong>: ${action} (${product.quantity} ahora)`, delta > 0 ? 'success' : 'warning');
+      renderScanInventory();
+      updateSummaryCards();
+    }
+
+    function showScanAlert(message, type) {
+      const alertDiv = document.getElementById('scan-result');
+      if (alertDiv) {
+        alertDiv.style.display = 'block';
+        alertDiv.className = `alert mt-3 alert-${type}`;
+        alertDiv.innerHTML = message;
+      }
     }
 
     function renderHistory() {
       const tbody = document.querySelector('#history-table tbody');
-      if(!tbody) return;
+      if (!tbody) return;
       tbody.innerHTML = transactions.length ? '' : '<tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos</td></tr>';
       transactions.forEach(t => {
         const d = new Date(t.date);
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${d.toLocaleString('es-CL')}</td><td><code>${t.code}</code></td><td>${t.name}</td><td><span class="badge ${t.action.includes('Salida')?'bg-warning text-dark':'bg-success'}">${t.action}</span></td><td>${t.user}</td>`;
+        const actionClass = t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success';
+        tr.innerHTML = `<td>${d.toLocaleString('es-CL')}</td><td><code>${t.code}</code></td><td>${t.name}</td><td><span class="badge ${actionClass}">${t.action}</span></td><td>${t.user}</td>`;
         tbody.appendChild(tr);
       });
     }
 
+    // ---------- ESCÁNER ----------
     function initScanner() {
       const startBtn = document.getElementById('start-scan-btn');
       const stopBtn = document.getElementById('stop-scan-btn');
@@ -667,7 +958,7 @@
       async function start() {
         try {
           const devices = await Html5Qrcode.getCameras();
-          if(!devices?.length) { alert('Sin cámara'); return; }
+          if (!devices?.length) { alert('Sin cámara'); return; }
           let camId = devices.find(d => d.label.toLowerCase().includes('back')||d.label.toLowerCase().includes('rear'))?.id || devices[0].id;
           window.html5QrCode = new Html5Qrcode("reader");
           await window.html5QrCode.start({ deviceId: camId }, { fps:10, qrbox:250 }, (text) => {
@@ -680,12 +971,16 @@
       function handleCode(code) {
         code = code.trim().toUpperCase();
         const p = products.find(x => x.code === code);
-        const alertDiv = document.getElementById('scan-result');
         if (!p) {
-          if(alertDiv) { alertDiv.style.display='block'; alertDiv.className='alert alert-danger mt-3'; alertDiv.innerHTML=`Código no registrado: <strong>${code}</strong>`; }
+          showScanAlert(`Código no registrado: <strong>${code}</strong>`, 'danger');
           return;
         }
-        toggleProductStatus(p);
+        if (p.type === 'specific') {
+          toggleSpecificStatus(p);
+        } else {
+          // Por defecto, escanear un bulk descuenta 1 unidad
+          requestBulkAdjust(code, -1);
+        }
       }
       startBtn.addEventListener('click', start);
       stopBtn.addEventListener('click', window.stopScanner);
