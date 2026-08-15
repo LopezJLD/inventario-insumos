@@ -34,7 +34,6 @@
     }
     .app-hidden { display: none !important; }
 
-    /* Navbar */
     .navbar {
       background: var(--color-secondary); box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       min-height: 56px;
@@ -56,7 +55,6 @@
       background: rgba(240,123,38,0.25) !important; color: #fff !important;
     }
 
-    /* Menú colapsado centrado y espaciado */
     @media (max-width: 991px) {
       .navbar .navbar-collapse {
         background: #2c3e50;
@@ -81,32 +79,20 @@
       }
     }
 
-    /* Contenido principal */
     main { padding: 16px; max-width: 1300px; margin: 0 auto; }
     .page { display: none; }
     .page.active { display: block; animation: fadeIn 0.25s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    .card {
-      border: none; border-radius: var(--border-radius);
-      box-shadow: var(--shadow); background: var(--color-card);
-    }
-    .btn {
-      border-radius: 10px; font-weight: 500; transition: 0.2s;
-    }
+    .card { border: none; border-radius: var(--border-radius); box-shadow: var(--shadow); background: var(--color-card); }
+    .btn { border-radius: 10px; font-weight: 500; transition: 0.2s; }
     .btn-primary { background: var(--color-primary); border-color: var(--color-primary); }
     .btn-primary:hover { background: var(--color-primary-hover); }
     .badge.bg-success { background: #d1fae5 !important; color: #065f46 !important; }
     .badge.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
     .badge.bg-warning { background: #fef3c7 !important; color: #92400e !important; }
-    .table {
-      border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);
-      background: #fff; font-size: 0.9rem;
-    }
-    .table thead th {
-      background: var(--color-secondary); color: #fff; font-weight: 600;
-      border: none; padding: 12px;
-    }
+    .table { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); background: #fff; font-size: 0.9rem; }
+    .table thead th { background: var(--color-secondary); color: #fff; font-weight: 600; border: none; padding: 12px; }
     .table tbody td { vertical-align: middle; padding: 10px 12px; }
     .table-responsive { border-radius: 12px; }
 
@@ -130,24 +116,14 @@
       transition: transform 0.2s, box-shadow 0.2s;
       user-select: none;
     }
-    .clickable-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    }
-    .summary-card {
-      background: #fff; border-radius: var(--border-radius); padding: 16px;
-      box-shadow: var(--shadow); text-align: center;
-    }
+    .clickable-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .summary-card { background: #fff; border-radius: var(--border-radius); padding: 16px; box-shadow: var(--shadow); text-align: center; }
     .summary-card .icon { font-size: 2rem; color: var(--color-primary); }
     .summary-card .value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
     .summary-card .label { font-size: 0.85rem; color: #64748b; }
 
-    .product-thumb {
-      width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 8px;
-    }
-    .modal-img {
-      max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 10px;
-    }
+    .product-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 8px; }
+    .modal-img { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -177,7 +153,6 @@
           <p class="text-muted small">Escanea o ingresa un código. Para equipos específicos se alterna Disponible/Tomado; para insumos a granel se descuenta una unidad.</p>
         </div>
 
-        <!-- Cámara / Escáner -->
         <div class="row g-3 mb-4">
           <div class="col-lg-6 mx-auto">
             <div class="card p-3">
@@ -199,7 +174,6 @@
           </div>
         </div>
 
-        <!-- Resumen clicable -->
         <div class="row g-3 mb-4">
           <div class="col-6">
             <div class="summary-card clickable-card" id="card-taken" title="Ver equipos tomados">
@@ -217,7 +191,6 @@
           </div>
         </div>
 
-        <!-- Notificaciones rápidas -->
         <div id="notifications-area" class="mb-3"></div>
 
         <hr>
@@ -255,7 +228,6 @@
         <button id="print-labels-btn" class="btn btn-outline-primary btn-sm mt-2"><i class="fas fa-print"></i> Imprimir Etiquetas QR</button>
       </div>
 
-      <!-- Página Historial -->
       <div id="page-history" class="page">
         <h2 class="fw-bold mb-3"><i class="fas fa-history me-2" style="color:var(--color-primary);"></i>Historial de Movimientos</h2>
         <div class="row g-3 mb-3">
@@ -288,7 +260,6 @@
         <button id="clear-history-btn" class="btn btn-outline-danger btn-sm mt-3"><i class="fas fa-trash-alt"></i> Limpiar historial</button>
       </div>
 
-      <!-- Página Agregar/Editar -->
       <div id="page-add" class="page">
         <h2 class="fw-bold mb-3" id="add-page-title"><i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto</h2>
         <form id="add-product-form" class="row g-3" novalidate>
@@ -309,7 +280,6 @@
             <input type="text" class="form-control" id="new-name" placeholder="Ej: Vibrador" required>
           </div>
 
-          <!-- Foto -->
           <div class="col-md-4">
             <label class="form-label">Foto del producto (opcional)</label>
             <input type="file" class="form-control" id="new-photo" accept="image/*" capture="environment">
@@ -320,7 +290,6 @@
             <input type="text" class="form-control" id="new-location" placeholder="Bodega, camión, obra...">
           </div>
 
-          <!-- Campos específicos -->
           <div id="specific-fields" class="col-12">
             <div class="row">
               <div class="col-md-6">
@@ -359,7 +328,6 @@
             </div>
           </div>
 
-          <!-- Campos bulk -->
           <div id="bulk-fields" class="col-12" style="display:none;">
             <div class="row">
               <div class="col-md-3">
@@ -384,7 +352,6 @@
         </form>
       </div>
 
-      <!-- Página Reportes -->
       <div id="page-reports" class="page">
         <h2 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2" style="color:var(--color-primary);"></i>Reportes</h2>
         <div class="card p-3 mb-3">
@@ -472,25 +439,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDxKkTfv5ahE10TJACB21iVT7UxfEghXk4",
-      authDomain: "insumos-sucor.firebaseapp.com",
-      databaseURL: "https://insumos-sucor-default-rtdb.firebaseio.com",
-      projectId: "insumos-sucor",
-      storageBucket: "insumos-sucor.firebasestorage.app",
-      messagingSenderId: "1027969662494",
-      appId: "1:1027969662494:web:6193effa98d8fb3b23780f",
-      measurementId: "G-MDM695J62C"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const storage = getStorage(app);
-    const productsRef = ref(db, 'productos');
-    const transactionsRef = ref(db, 'transacciones');
+    // ⚠️ REEMPLAZA con tu anon key (Settings → API → anon public)
+    const supabaseUrl = 'https://eekyijmucphbmcrvtunb.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_VVLECdZbLTF6kveXN5Jz2g_6zb-3QA-';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     const currentUser = "sistema";
     let products = [];
@@ -503,45 +457,16 @@
 
     // ---------- INICIALIZACIÓN ----------
     function initApp() {
-      const badge = document.getElementById('connection-badge');
-      onValue(ref(db, '.info/connected'), (snap) => {
-        const online = snap.val() === true;
-        badge.className = `connection-badge badge ${online ? 'bg-success' : 'bg-danger'}`;
-        badge.innerHTML = online ? '<i class="fas fa-link me-1"></i> En línea' : '<i class="fas fa-unlink me-1"></i> Sin conexión';
-      });
-
-      onValue(productsRef, (snapshot) => {
-        const data = snapshot.val();
-        products = data ? Object.values(data) : [];
-        renderScanInventory();
-        updateSummaryCards();
-        renderNotifications();
-        // Una vez que los datos están cargados, habilitamos el escáner (si no se había hecho)
-        if (!dataLoaded) {
-          dataLoaded = true;
-          setupScanner();
-          document.getElementById('start-scan-btn').disabled = false;
-          document.getElementById('scan-status').textContent = 'Datos cargados. Presiona "Iniciar Cámara"';
-        }
-      });
-
-      onValue(transactionsRef, (snapshot) => {
-        const data = snapshot.val();
-        transactions = data ? Object.values(data) : [];
-        transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
-        if (document.getElementById('page-history').classList.contains('active')) renderHistory();
-        if (document.getElementById('page-reports').classList.contains('active')) renderReports();
-      });
-
       setupNavigation();
       setupFilters();
       setupModals();
       setupForm();
       setupButtons();
       window.showPage('scan');
-
-      // Forzar cierre del menú en móvil
       cerrarMenu();
+
+      loadProducts();
+      loadTransactions();
     }
 
     function cerrarMenu() {
@@ -574,10 +499,7 @@
           updateSummaryCards();
           renderNotifications();
         }
-        // Cerrar menú al navegar
-        if (bsCollapse && navbarCollapse.classList.contains('show')) {
-          bsCollapse.hide();
-        }
+        if (bsCollapse && navbarCollapse.classList.contains('show')) bsCollapse.hide();
       };
 
       navLinks.forEach(link => {
@@ -585,9 +507,7 @@
           e.preventDefault();
           if (window.stopScanner) window.stopScanner();
           window.showPage(link.dataset.page);
-          if (bsCollapse && navbarCollapse.classList.contains('show')) {
-            bsCollapse.hide();
-          }
+          if (bsCollapse && navbarCollapse.classList.contains('show')) bsCollapse.hide();
         });
       });
     }
@@ -689,7 +609,6 @@
       stopBtn.addEventListener('click', window.stopScanner);
       document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
       document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
-      // Habilitar solo si ya hay datos, pero la función se llama después de dataLoaded
     }
 
     function setupModals() {
@@ -745,7 +664,6 @@
         }
       });
 
-      // Limpiar pendingAssignCode al cerrar el modal de asignación
       document.getElementById('assignModal').addEventListener('hidden.bs.modal', () => {
         pendingAssignCode = null;
       });
@@ -760,8 +678,12 @@
     }
 
     function setupButtons() {
-      document.getElementById('clear-history-btn').addEventListener('click', () => {
-        if (confirm('¿Borrar todo el historial?')) { transactions = []; saveTransactions(); renderHistory(); }
+      document.getElementById('clear-history-btn').addEventListener('click', async () => {
+        if (confirm('¿Borrar todo el historial?')) {
+          await supabase.from('transacciones').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          transactions = [];
+          renderHistory();
+        }
       });
       document.getElementById('export-inventory-btn').addEventListener('click', exportInventoryCSV);
       document.getElementById('export-history-btn').addEventListener('click', exportHistoryCSV);
@@ -811,14 +733,16 @@
 
       let photo_url = '';
       if (photoFile) {
-        try {
-          const storageReference = storageRef(storage, `productos/${code}-${Date.now()}-${photoFile.name}`);
-          const snapshot = await uploadBytes(storageReference, photoFile);
-          photo_url = await getDownloadURL(snapshot.ref);
-        } catch (err) {
-          alert('Error al subir imagen: ' + err.message);
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${code}-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('productos')
+          .upload(fileName, photoFile);
+        if (uploadError) {
+          alert('Error al subir imagen: ' + uploadError.message);
           return;
         }
+        photo_url = `${supabaseUrl}/storage/v1/object/public/productos/${fileName}`;
       }
 
       let product = { code, name, type, location, photo_url };
@@ -839,16 +763,15 @@
       }
 
       if (editingCode) {
-        const index = products.findIndex(p => p.code === editingCode);
-        if (index > -1) {
-          // Mantener la foto anterior si no se subió una nueva
-          if (!photo_url) product.photo_url = products[index].photo_url;
-          products[index] = { ...products[index], ...product };
-        }
+        const { error } = await supabase.from('productos').update(product).eq('code', editingCode);
+        if (error) { alert('Error al actualizar: ' + error.message); return; }
+        await loadProducts();
       } else {
-        products.push(product);
+        const { error } = await supabase.from('productos').insert(product);
+        if (error) { alert('Error al guardar: ' + error.message); return; }
+        await loadProducts();
       }
-      saveProducts();
+
       form.reset();
       form.classList.remove('was-validated');
       document.getElementById('photo-preview').innerHTML = '';
@@ -864,6 +787,44 @@
       document.getElementById('add-product-form').reset();
       document.getElementById('photo-preview').innerHTML = '';
       toggleTypeFields();
+    }
+
+    // ---------- CARGAR DATOS ----------
+    async function loadProducts() {
+      const { data, error } = await supabase.from('productos').select('*');
+      if (error) {
+        console.error('Error cargando productos:', error);
+        setConnectionBadge(false);
+        return;
+      }
+      products = data || [];
+      renderScanInventory();
+      updateSummaryCards();
+      renderNotifications();
+      setConnectionBadge(true);
+      if (!dataLoaded) {
+        dataLoaded = true;
+        setupScanner();
+        document.getElementById('start-scan-btn').disabled = false;
+        document.getElementById('scan-status').textContent = 'Datos cargados. Presiona "Iniciar Cámara"';
+      }
+    }
+
+    async function loadTransactions() {
+      const { data, error } = await supabase.from('transacciones').select('*').order('date', { ascending: false });
+      if (error) {
+        console.error('Error cargando transacciones:', error);
+        return;
+      }
+      transactions = data || [];
+      if (document.getElementById('page-history').classList.contains('active')) renderHistory();
+      if (document.getElementById('page-reports').classList.contains('active')) renderReports();
+    }
+
+    function setConnectionBadge(online) {
+      const badge = document.getElementById('connection-badge');
+      badge.className = `connection-badge badge ${online ? 'bg-success' : 'bg-danger'}`;
+      badge.innerHTML = online ? '<i class="fas fa-link me-1"></i> En línea' : '<i class="fas fa-unlink me-1"></i> Sin conexión';
     }
 
     // ---------- RENDER FUNCTIONS ----------
@@ -1000,21 +961,21 @@
       new bootstrap.Modal(document.getElementById('assignModal')).show();
     }
 
-    function toggleSpecificStatus(product) {
+    async function toggleSpecificStatus(product) {
       const newStatus = product.status === 'available' ? 'taken' : 'available';
       product.status = newStatus;
       if (newStatus === 'available') product.assigned_to = '';
-      saveProducts();
-      transactions.unshift({
-        date: new Date().toISOString(), code: product.code, name: product.name,
+      const { error } = await supabase.from('productos').update({ status: product.status, assigned_to: product.assigned_to }).eq('code', product.code);
+      if (error) { alert('Error al actualizar: ' + error.message); return; }
+      await addTransaction({
+        date: new Date().toISOString(),
+        code: product.code,
+        name: product.name,
         action: newStatus==='taken'?'Salida (Tomado)':'Entrada (Devuelto)',
-        user: currentUser
+        user_name: currentUser
       });
-      saveTransactions();
       showScanAlert(`<strong>${product.name}</strong> → ${newStatus==='available'?'Disponible':'Tomado'}`, newStatus==='taken'?'warning':'success');
-      renderScanInventory();
-      updateSummaryCards();
-      renderNotifications();
+      await loadProducts();
     }
 
     function requestBulkAdjust(code, delta) {
@@ -1037,23 +998,33 @@
       new bootstrap.Modal(document.getElementById('adjustQuantityModal')).show();
     }
 
-    function adjustBulkQuantity(product, delta) {
+    async function adjustBulkQuantity(product, delta) {
       if (delta === 0) return;
       const newQuantity = product.quantity + delta;
       if (newQuantity < 0) return;
       product.quantity = newQuantity;
-      saveProducts();
+      const { error } = await supabase.from('productos').update({ quantity: newQuantity }).eq('code', product.code);
+      if (error) { alert('Error al actualizar: ' + error.message); return; }
       const action = delta > 0 ? `Entrada de ${delta} ${product.unit || 'unidad(es)'}` : `Salida de ${Math.abs(delta)} ${product.unit || 'unidad(es)'}`;
-      transactions.unshift({
-        date: new Date().toISOString(), code: product.code, name: product.name,
+      await addTransaction({
+        date: new Date().toISOString(),
+        code: product.code,
+        name: product.name,
         action: action,
-        user: currentUser
+        user_name: currentUser
       });
-      saveTransactions();
       showScanAlert(`<strong>${product.name}</strong>: ${action} (${product.quantity} ahora)`, delta > 0 ? 'success' : 'warning');
-      renderScanInventory();
-      updateSummaryCards();
-      renderNotifications();
+      await loadProducts();
+    }
+
+    async function addTransaction(transaction) {
+      const { error } = await supabase.from('transacciones').insert(transaction);
+      if (error) console.error('Error guardando transacción:', error);
+      else {
+        transactions.unshift(transaction);
+        if (document.getElementById('page-history').classList.contains('active')) renderHistory();
+        if (document.getElementById('page-reports').classList.contains('active')) renderReports();
+      }
     }
 
     function showProductDetails(code) {
@@ -1117,12 +1088,13 @@
       window.showPage('add');
     }
 
-    function deleteProduct(code) {
+    async function deleteProduct(code) {
       const p = products.find(x => x.code === code);
       if (!p) return;
       if (confirm(`¿Eliminar ${p.name}?`)) {
-        products = products.filter(x => x.code !== code);
-        saveProducts();
+        const { error } = await supabase.from('productos').delete().eq('code', code);
+        if (error) { alert('Error al eliminar: ' + error.message); return; }
+        await loadProducts();
         renderScanInventory();
         updateSummaryCards();
         renderNotifications();
@@ -1154,7 +1126,7 @@
         const d = new Date(t.date);
         const tr = document.createElement('tr');
         const actionClass = t.action.includes('Salida') ? 'bg-warning text-dark' : 'bg-success';
-        tr.innerHTML = `<td>${d.toLocaleString('es-CL')}</td><td><code>${t.code}</code></td><td>${t.name}</td><td><span class="badge ${actionClass}">${t.action}</span></td><td>${t.user}</td>`;
+        tr.innerHTML = `<td>${d.toLocaleString('es-CL')}</td><td><code>${t.code}</code></td><td>${t.name}</td><td><span class="badge ${actionClass}">${t.action}</span></td><td>${t.user_name}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -1178,7 +1150,6 @@
       if (sorted.length === 0) reportTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>';
     }
 
-    // ---------- EXPORTACIONES ----------
     function exportInventoryCSV() {
       let csv = 'Código,Nombre,Tipo,Estado/Cantidad,Ubicación,Asignado,Foto\n';
       products.forEach(p => {
@@ -1196,7 +1167,7 @@
     function exportHistoryCSV() {
       let csv = 'Fecha,Código,Producto,Acción,Usuario\n';
       transactions.forEach(t => {
-        csv += `${new Date(t.date).toLocaleString('es-CL')},"${t.code}","${t.name}","${t.action}","${t.user}"\n`;
+        csv += `${new Date(t.date).toLocaleString('es-CL')},"${t.code}","${t.name}","${t.action}","${t.user_name}"\n`;
       });
       downloadCSV(csv, 'historial.csv');
     }
@@ -1269,9 +1240,7 @@
       URL.revokeObjectURL(link.href);
     }
 
-    // ---------- IMPRESIÓN DE ETIQUETAS QR (CORREGIDO) ----------
     function printLabels() {
-      // Crear una nueva ventana y cargar QRCode.js desde CDN
       const win = window.open('', '_blank');
       if (!win) { alert('Por favor, permite ventanas emergentes para imprimir etiquetas.'); return; }
       win.document.write(`
@@ -1300,13 +1269,11 @@
                 div.innerHTML = '<h6>' + p.name + '</h6><div class="qr-placeholder" id="qr-' + p.code + '"></div><small>' + p.code + '</small>';
                 container.appendChild(div);
               });
-              // Esperar a que se renderice el DOM y luego generar QR
               setTimeout(() => {
                 products.forEach(p => {
                   const el = document.getElementById('qr-' + p.code);
                   if (el) new QRCode(el, { text: p.code, width: 150, height: 150 });
                 });
-                // Imprimir después de generar todos los QR
                 setTimeout(() => { window.print(); }, 300);
               }, 200);
             <\/script>
@@ -1323,13 +1290,9 @@
       alertDiv.innerHTML = message;
     }
 
-    function saveProducts() { set(productsRef, products).catch(() => {}); }
-    function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
-
-    // Iniciar aplicación
+    // Iniciar
     document.addEventListener('DOMContentLoaded', () => {
       initApp();
-      // Asegurar que el menú colapsado esté cerrado al cargar
       setTimeout(cerrarMenu, 100);
     });
   </script>
