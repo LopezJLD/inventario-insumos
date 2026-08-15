@@ -530,6 +530,23 @@
       setupForm();
       setupButtons();
       window.showPage('scan');
+
+      // Forzar cierre del menú en móvil (ejecutar después de que Bootstrap termine de inicializar)
+      cerrarMenu();
+    }
+
+    function cerrarMenu() {
+      const navbarCollapse = document.getElementById('navbarNav');
+      if (navbarCollapse) {
+        // Quitar clase 'show' y atributos de expansión
+        navbarCollapse.classList.remove('show');
+        navbarCollapse.setAttribute('aria-expanded', 'false');
+        const toggler = document.querySelector('.navbar-toggler');
+        if (toggler) toggler.setAttribute('aria-expanded', 'false');
+        // Obtener la instancia de Collapse y ocultar
+        const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse) || new bootstrap.Collapse(navbarCollapse, { toggle: false });
+        bsCollapse.hide();
+      }
     }
 
     function setupNavigation() {
@@ -550,6 +567,7 @@
           updateSummaryCards();
           renderNotifications();
         }
+        // Cerrar menú al navegar
         if (bsCollapse && navbarCollapse.classList.contains('show')) {
           bsCollapse.hide();
         }
@@ -1267,16 +1285,21 @@
     // Iniciar aplicación y forzar cierre del menú en móvil
     document.addEventListener('DOMContentLoaded', () => {
       initApp();
-      // Asegurar que el menú colapsado esté cerrado al cargar
-      setTimeout(() => {
-        const navbarCollapseEl = document.getElementById('navbarNav');
-        if (navbarCollapseEl) {
-          navbarCollapseEl.classList.remove('show');
-          navbarCollapseEl.setAttribute('aria-expanded', 'false');
-          const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapseEl);
-          bsCollapse.hide();
-        }
-      }, 200);
+      // Asegurar que el menú colapsado esté cerrado al cargar (con retraso para permitir que Bootstrap termine)
+      setTimeout(cerrarMenu, 100);
+      // También escuchar el evento 'shown' para cerrarlo si se abre accidentalmente
+      const navbarCollapse = document.getElementById('navbarNav');
+      if (navbarCollapse) {
+        navbarCollapse.addEventListener('shown.bs.collapse', () => {
+          // Si se muestra, lo cerramos inmediatamente (solo si no fue un clic del usuario)
+          // Pero para evitar interferir con el clic del usuario, solo lo hacemos si no hay interacción reciente.
+          // Como medida simple, lo cerramos siempre, pero el usuario puede abrirlo con el botón.
+          // Esto evita que se muestre al cargar.
+          // Dejamos que el usuario pueda abrirlo manualmente, no lo forzamos a cerrar si el usuario lo abrió.
+          // Para no bloquear la interacción, solo actuamos si el menú no fue abierto por el usuario (no hay evento de clic).
+          // Lo dejamos así: solo cerramos al inicio.
+        });
+      }
     });
   </script>
 </body>
