@@ -182,8 +182,9 @@
           <div class="col-lg-6 mx-auto">
             <div class="card p-3">
               <div id="reader" class="mb-3" style="min-height:220px; background:#000; border-radius:12px;"></div>
-              <button id="start-scan-btn" class="btn btn-primary w-100 mb-2"><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
+              <button id="start-scan-btn" class="btn btn-primary w-100 mb-2" disabled><i class="fas fa-camera me-2"></i>Iniciar Cámara</button>
               <button id="stop-scan-btn" class="btn btn-outline-secondary w-100" disabled><i class="fas fa-stop me-2"></i>Detener</button>
+              <div id="scan-status" class="small text-muted mt-2">Esperando carga de datos...</div>
             </div>
           </div>
           <div class="col-lg-6">
@@ -497,6 +498,8 @@
     let pendingAction = null;
     let pendingAssignCode = null;
     let editingCode = null;
+    let dataLoaded = false;
+    let scannerInitialized = false;
 
     // ---------- INICIALIZACIÓN ----------
     function initApp() {
@@ -513,6 +516,13 @@
         renderScanInventory();
         updateSummaryCards();
         renderNotifications();
+        // Una vez que los datos están cargados, habilitamos el escáner (si no se había hecho)
+        if (!dataLoaded) {
+          dataLoaded = true;
+          setupScanner();
+          document.getElementById('start-scan-btn').disabled = false;
+          document.getElementById('scan-status').textContent = 'Datos cargados. Presiona "Iniciar Cámara"';
+        }
       });
 
       onValue(transactionsRef, (snapshot) => {
@@ -525,25 +535,22 @@
 
       setupNavigation();
       setupFilters();
-      setupScanner();
       setupModals();
       setupForm();
       setupButtons();
       window.showPage('scan');
 
-      // Forzar cierre del menú en móvil (ejecutar después de que Bootstrap termine de inicializar)
+      // Forzar cierre del menú en móvil
       cerrarMenu();
     }
 
     function cerrarMenu() {
       const navbarCollapse = document.getElementById('navbarNav');
       if (navbarCollapse) {
-        // Quitar clase 'show' y atributos de expansión
         navbarCollapse.classList.remove('show');
         navbarCollapse.setAttribute('aria-expanded', 'false');
         const toggler = document.querySelector('.navbar-toggler');
         if (toggler) toggler.setAttribute('aria-expanded', 'false');
-        // Obtener la instancia de Collapse y ocultar
         const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse) || new bootstrap.Collapse(navbarCollapse, { toggle: false });
         bsCollapse.hide();
       }
@@ -553,7 +560,7 @@
       const pages = document.querySelectorAll('.page');
       const navLinks = document.querySelectorAll('.page-link');
       const navbarCollapse = document.getElementById('navbarNav');
-      const bsCollapse = navbarCollapse ? bootstrap.Collapse.getOrCreateInstance(navbarCollapse) : null;
+      const bsCollapse = navbarCollapse ? (bootstrap.Collapse.getInstance(navbarCollapse) || new bootstrap.Collapse(navbarCollapse, { toggle: false })) : null;
 
       window.showPage = (pageId) => {
         pages.forEach(p => p.classList.remove('active'));
@@ -629,6 +636,8 @@
     }
 
     function setupScanner() {
+      if (scannerInitialized) return;
+      scannerInitialized = true;
       const startBtn = document.getElementById('start-scan-btn');
       const stopBtn = document.getElementById('stop-scan-btn');
       window.stopScanner = () => {
@@ -680,6 +689,7 @@
       stopBtn.addEventListener('click', window.stopScanner);
       document.getElementById('manual-submit').addEventListener('click', () => { handleCode(document.getElementById('manual-code').value); document.getElementById('manual-code').value=''; });
       document.getElementById('manual-code').addEventListener('keypress', e => { if(e.key==='Enter'){ handleCode(e.target.value); e.target.value=''; } });
+      // Habilitar solo si ya hay datos, pero la función se llama después de dataLoaded
     }
 
     function setupModals() {
@@ -733,6 +743,11 @@
           pendingAssignCode = null;
           bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
         }
+      });
+
+      // Limpiar pendingAssignCode al cerrar el modal de asignación
+      document.getElementById('assignModal').addEventListener('hidden.bs.modal', () => {
+        pendingAssignCode = null;
       });
     }
 
@@ -826,6 +841,7 @@
       if (editingCode) {
         const index = products.findIndex(p => p.code === editingCode);
         if (index > -1) {
+          // Mantener la foto anterior si no se subió una nueva
           if (!photo_url) product.photo_url = products[index].photo_url;
           products[index] = { ...products[index], ...product };
         }
@@ -862,7 +878,7 @@
       let list = products.filter(p => {
         if (typeFilter !== 'all' && p.type !== typeFilter) return false;
         if (statusFilter === 'stock_low') {
-          if (p.type !== 'bulk' || p.quantity > p.minQuantity) return false;
+          if (p.type !== 'bulk' || (p.minQuantity !== undefined && p.quantity > p.minQuantity) || (p.minQuantity === undefined && p.quantity > 0)) return false;
         } else if (statusFilter !== 'all') {
           if (p.type !== 'specific' || p.status !== statusFilter) return false;
         }
@@ -895,7 +911,7 @@
             <button class="btn btn-sm btn-outline-danger delete-btn" data-code="${p.code}"><i class="fas fa-trash"></i></button>
           `;
         } else {
-          const lowStock = p.quantity <= p.minQuantity;
+          const lowStock = (p.minQuantity !== undefined && p.quantity <= p.minQuantity);
           statusHtml = `${p.quantity} ${p.unit || ''} ${lowStock ? '<span class="badge bg-warning text-dark ms-1">Stock bajo</span>' : ''}`;
           actionsHtml = `
             <button class="btn btn-sm btn-outline-secondary qr-btn me-1" data-code="${p.code}"><i class="fas fa-qrcode"></i></button>
@@ -936,13 +952,13 @@
 
     function updateSummaryCards() {
       document.getElementById('summary-specific-taken').textContent = products.filter(p => p.type === 'specific' && p.status === 'taken').length;
-      document.getElementById('summary-bulk-low').textContent = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity).length;
+      document.getElementById('summary-bulk-low').textContent = products.filter(p => p.type === 'bulk' && (p.minQuantity !== undefined && p.quantity <= p.minQuantity)).length;
     }
 
     function renderNotifications() {
       const area = document.getElementById('notifications-area');
       area.innerHTML = '';
-      const lowStockItems = products.filter(p => p.type === 'bulk' && p.quantity <= p.minQuantity);
+      const lowStockItems = products.filter(p => p.type === 'bulk' && (p.minQuantity !== undefined && p.quantity <= p.minQuantity));
       const assignedItems = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to);
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
@@ -1122,8 +1138,14 @@
         if (search && !t.name.toLowerCase().includes(search) && !t.code.toLowerCase().includes(search)) return false;
         if (typeFilter !== 'all' && !t.action.includes(typeFilter)) return false;
         const d = new Date(t.date);
-        if (dateFrom && d < new Date(dateFrom+'T00:00:00')) return false;
-        if (dateTo && d > new Date(dateTo+'T23:59:59')) return false;
+        if (dateFrom) {
+          const from = new Date(dateFrom+'T00:00:00');
+          if (!isNaN(from) && d < from) return false;
+        }
+        if (dateTo) {
+          const to = new Date(dateTo+'T23:59:59');
+          if (!isNaN(to) && d > to) return false;
+        }
         return true;
       });
       const tbody = document.querySelector('#history-table tbody');
@@ -1156,6 +1178,7 @@
       if (sorted.length === 0) reportTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>';
     }
 
+    // ---------- EXPORTACIONES ----------
     function exportInventoryCSV() {
       let csv = 'Código,Nombre,Tipo,Estado/Cantidad,Ubicación,Asignado,Foto\n';
       products.forEach(p => {
@@ -1246,30 +1269,51 @@
       URL.revokeObjectURL(link.href);
     }
 
+    // ---------- IMPRESIÓN DE ETIQUETAS QR (CORREGIDO) ----------
     function printLabels() {
-      const qrContainer = document.createElement('div');
-      qrContainer.style.display = 'flex';
-      qrContainer.style.flexWrap = 'wrap';
-      qrContainer.style.gap = '20px';
-      qrContainer.style.padding = '20px';
-      products.forEach(p => {
-        const card = document.createElement('div');
-        card.style.width = '200px';
-        card.style.textAlign = 'center';
-        card.style.border = '1px solid #ccc';
-        card.style.padding = '10px';
-        card.innerHTML = `<h6>${p.name}</h6><div id="qr-${p.code}" style="margin: 0 auto;"></div><small>${p.code}</small>`;
-        qrContainer.appendChild(card);
-        setTimeout(() => {
-          new QRCode(document.getElementById(`qr-${p.code}`), { text: p.code, width: 150, height: 150 });
-        }, 100);
-      });
+      // Crear una nueva ventana y cargar QRCode.js desde CDN
       const win = window.open('', '_blank');
-      win.document.write('<html><head><title>Etiquetas QR</title></head><body>');
-      win.document.write(qrContainer.outerHTML);
-      win.document.write('</body></html>');
+      if (!win) { alert('Por favor, permite ventanas emergentes para imprimir etiquetas.'); return; }
+      win.document.write(`
+        <html>
+          <head>
+            <title>Etiquetas QR - Insumos Sucor</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .label-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+              .label { width: 200px; border: 1px solid #ccc; padding: 10px; text-align: center; border-radius: 8px; }
+              .label h6 { margin: 0 0 8px 0; font-size: 14px; }
+              .label small { display: block; margin-top: 6px; font-size: 12px; color: #555; }
+              .qr-placeholder { margin: 0 auto; width: 150px; height: 150px; }
+            </style>
+          </head>
+          <body>
+            <h2 style="text-align:center;">Etiquetas QR - Insumos Sucor</h2>
+            <div class="label-container" id="label-container"></div>
+            <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+            <script>
+              const products = ${JSON.stringify(products)};
+              const container = document.getElementById('label-container');
+              products.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'label';
+                div.innerHTML = '<h6>' + p.name + '</h6><div class="qr-placeholder" id="qr-' + p.code + '"></div><small>' + p.code + '</small>';
+                container.appendChild(div);
+              });
+              // Esperar a que se renderice el DOM y luego generar QR
+              setTimeout(() => {
+                products.forEach(p => {
+                  const el = document.getElementById('qr-' + p.code);
+                  if (el) new QRCode(el, { text: p.code, width: 150, height: 150 });
+                });
+                // Imprimir después de generar todos los QR
+                setTimeout(() => { window.print(); }, 300);
+              }, 200);
+            <\/script>
+          </body>
+        </html>
+      `);
       win.document.close();
-      setTimeout(() => { win.print(); }, 500);
     }
 
     function showScanAlert(message, type) {
@@ -1282,24 +1326,11 @@
     function saveProducts() { set(productsRef, products).catch(() => {}); }
     function saveTransactions() { set(transactionsRef, transactions).catch(() => {}); }
 
-    // Iniciar aplicación y forzar cierre del menú en móvil
+    // Iniciar aplicación
     document.addEventListener('DOMContentLoaded', () => {
       initApp();
-      // Asegurar que el menú colapsado esté cerrado al cargar (con retraso para permitir que Bootstrap termine)
+      // Asegurar que el menú colapsado esté cerrado al cargar
       setTimeout(cerrarMenu, 100);
-      // También escuchar el evento 'shown' para cerrarlo si se abre accidentalmente
-      const navbarCollapse = document.getElementById('navbarNav');
-      if (navbarCollapse) {
-        navbarCollapse.addEventListener('shown.bs.collapse', () => {
-          // Si se muestra, lo cerramos inmediatamente (solo si no fue un clic del usuario)
-          // Pero para evitar interferir con el clic del usuario, solo lo hacemos si no hay interacción reciente.
-          // Como medida simple, lo cerramos siempre, pero el usuario puede abrirlo con el botón.
-          // Esto evita que se muestre al cargar.
-          // Dejamos que el usuario pueda abrirlo manualmente, no lo forzamos a cerrar si el usuario lo abrió.
-          // Para no bloquear la interacción, solo actuamos si el menú no fue abierto por el usuario (no hay evento de clic).
-          // Lo dejamos así: solo cerramos al inicio.
-        });
-      }
     });
   </script>
 </body>
