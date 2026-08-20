@@ -117,16 +117,54 @@
     .badge.bg-success { background: #d1fae5 !important; color: #065f46 !important; }
     .badge.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
     .badge.bg-warning { background: #fef3c7 !important; color: #92400e !important; }
+
+    /* Tables - Responsive card view on mobile */
     .table { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); background: #fff; font-size: 0.9rem; }
     .table thead th { background: var(--color-secondary); color: #fff; font-weight: 600; border: none; padding: 12px; }
     .table tbody td { vertical-align: middle; padding: 10px 12px; }
     .table-responsive { border-radius: 12px; }
 
-    .btn-group .btn {
-      font-size: 0.82rem; padding: 6px 14px; border-radius: 10px;
-      margin: 0 2px; border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
+    @media (max-width: 576px) {
+      .table thead { display: none; }
+      .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+      .table tr { margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+      .table td { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: none; border-bottom: 1px solid #f1f5f9; }
+      .table td:last-child { border-bottom: none; }
+      .table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        margin-right: 12px;
+        white-space: nowrap;
+      }
     }
-    .btn-group .btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+    /* Filter buttons - use flex wrap instead of btn-group for mobile friendliness */
+    .filter-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .filter-btn-group .btn {
+      flex: 0 1 auto;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      border-radius: 10px;
+      border: 1.5px solid #e2e8f0;
+      background: #fff;
+      color: #475569;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-btn-group .btn.active {
+      background: var(--color-primary);
+      color: #fff;
+      border-color: var(--color-primary);
+    }
+    .filter-btn-group .btn:not(.active):hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
 
     .connection-badge {
       position: fixed; bottom: 16px; right: 16px; z-index: 999;
@@ -246,21 +284,56 @@
     }
     .inventory-card .card-footer .btn {
       font-size: 0.75rem;
-      padding: 4px 10px;
+      padding: 6px 10px;
       border-radius: 8px;
       flex: 1 0 auto;
       min-width: 60px;
+      touch-action: manipulation;
     }
     .inventory-card .card-footer .btn-sm {
       font-size: 0.7rem;
-      padding: 2px 8px;
+      padding: 4px 8px;
     }
+    /* Aumentar área táctil en móviles */
     @media (max-width: 576px) {
       .inventory-card .card-footer .btn {
-        font-size: 0.7rem;
-        padding: 4px 8px;
-        min-width: 50px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        min-width: 70px;
+        margin: 2px;
       }
+      .inventory-card .card-footer .btn-sm {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+      }
+      .inventory-card .card-header .product-image {
+        width: 60px;
+        height: 60px;
+      }
+      .inventory-card .card-header .code {
+        font-size: 0.85rem;
+      }
+      .summary-card .icon { font-size: 1.5rem; }
+      .summary-card .value { font-size: 1.5rem; }
+      .summary-card .label { font-size: 0.75rem; }
+    }
+
+    /* Search box */
+    .search-box {
+      position: relative;
+    }
+    .search-box .clear-search {
+      cursor: pointer;
+      font-size: 0.9rem;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      background: none;
+      border: none;
+      color: #64748b;
+    }
+    .search-box .clear-search:hover {
+      opacity: 1;
+      color: #1e293b;
     }
   </style>
 </head>
@@ -361,26 +434,30 @@
 
         <hr>
         <h3 class="fw-bold mb-3"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
+        
+        <!-- Filtros mejorados: usamos flex wrap en lugar de btn-group -->
         <div class="row g-2 mb-3">
           <div class="col-md-6">
-            <div class="btn-group" id="type-filter-group">
+            <div class="filter-btn-group" id="type-filter-group">
               <button class="btn btn-outline-secondary type-filter-btn active" data-type="all">Todos</button>
               <button class="btn btn-outline-secondary type-filter-btn" data-type="specific">Equipos</button>
               <button class="btn btn-outline-secondary type-filter-btn" data-type="bulk">Materiales</button>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="btn-group" id="status-filter-group">
+          <div class="col-md-6">
+            <div class="filter-btn-group" id="status-filter-group">
               <button class="btn btn-outline-secondary status-filter-btn active" data-status="all">Todos</button>
               <button class="btn btn-outline-secondary status-filter-btn" data-status="available">Disponibles</button>
               <button class="btn btn-outline-secondary status-filter-btn" data-status="taken">Tomados</button>
               <button class="btn btn-outline-secondary status-filter-btn" data-status="stock_low">Stock Bajo</button>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="search-box position-relative">
+          <div class="col-12 mt-2">
+            <div class="search-box">
               <input type="text" class="form-control" id="search-input" placeholder="Buscar código o nombre...">
-              <i class="fas fa-times clear-search position-absolute top-50 end-0 translate-middle-y me-2 text-muted" id="clear-search-btn" style="display:none; cursor:pointer;"></i>
+              <button class="clear-search position-absolute top-50 end-0 translate-middle-y me-2" id="clear-search-btn" style="display:none;" aria-label="Limpiar búsqueda">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -618,7 +695,7 @@
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Asignar equipo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <p>¿A quién o a qué proyecto se asigna este equipo?</p>
+          <p>¿A quién o a qué proyecto se asigna este equipo? <small class="text-muted">(Opcional)</small></p>
           <input type="text" class="form-control" id="assign-input" placeholder="Nombre de persona o proyecto">
         </div>
         <div class="modal-footer">
@@ -827,6 +904,11 @@
       };
       async function start() {
         try {
+          // Si ya hay una instancia, detener y limpiar antes de crear una nueva
+          if (window.html5QrCode) {
+            await window.html5QrCode.stop();
+            window.html5QrCode.clear();
+          }
           const devices = await Html5Qrcode.getCameras();
           if (!devices?.length) { alert('Sin cámara'); return; }
           let camId = devices.find(d => d.label.toLowerCase().includes('back')||d.label.toLowerCase().includes('rear'))?.id || devices[0].id;
@@ -933,9 +1015,10 @@
 
       document.getElementById('assign-confirm-btn').addEventListener('click', () => {
         const val = document.getElementById('assign-input').value.trim();
-        if (val && pendingAssignCode) {
+        if (pendingAssignCode) {
           const p = products.find(x => x.code === pendingAssignCode);
           if (p) {
+            // Ahora el campo es opcional; si está vacío se asigna cadena vacía
             p.assigned_to = val;
             toggleSpecificStatus(p);
           }
@@ -958,7 +1041,7 @@
       document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
       document.getElementById('new-photo').addEventListener('change', previewPhoto);
       toggleTypeFields();
-      generateNewCode(); // Genera código inicial
+      generateNewCode();
     }
 
     function setupButtons() {
@@ -1003,11 +1086,7 @@
       const previewDiv = document.getElementById('photo-preview');
       previewDiv.innerHTML = '';
       if (file) {
-        if (file.size > 2 * 1024 * 1024) {
-          alert('La imagen no debe superar 2 MB.');
-          document.getElementById('new-photo').value = '';
-          return;
-        }
+        // Sin límite de tamaño (se eliminó la restricción de 2 MB)
         const reader = new FileReader();
         reader.onload = e => {
           previewDiv.innerHTML = `<img src="${e.target.result}" class="product-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">`;
@@ -1034,10 +1113,7 @@
 
       let photo_url = '';
       if (photoFile) {
-        if (photoFile.size > 2 * 1024 * 1024) {
-          alert('La imagen no debe superar 2 MB.');
-          return;
-        }
+        // Sin límite de tamaño
         const fileExt = photoFile.name.split('.').pop();
         const fileName = `${code}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
@@ -1081,8 +1157,7 @@
       form.reset();
       form.classList.remove('was-validated');
       document.getElementById('photo-preview').innerHTML = '';
-      cancelEdit();
-      window.showPage('scan');
+      cancelEdit(); // Ahora cancelEdit muestra la página scan
     }
 
     function cancelEdit() {
@@ -1093,7 +1168,9 @@
       document.getElementById('add-product-form').reset();
       document.getElementById('photo-preview').innerHTML = '';
       toggleTypeFields();
-      generateNewCode(); // Regenera código tras reset
+      generateNewCode();
+      // Volver a la página de escaneo
+      window.showPage('scan');
     }
 
     // ---------- CARGAR DATOS ----------
@@ -1404,7 +1481,10 @@
     async function adjustBulkQuantity(product, delta) {
       if (delta === 0) return;
       const newQuantity = product.quantity + delta;
-      if (newQuantity < 0) return;
+      if (newQuantity < 0) {
+        alert('No hay suficiente stock para realizar esta operación.');
+        return;
+      }
       product.quantity = newQuantity;
       const { error } = await supabase.from('productos').update({ quantity: newQuantity }).eq('code', product.code);
       if (error) { alert('Error al actualizar: ' + error.message); return; }
@@ -1496,6 +1576,9 @@
       const p = products.find(x => x.code === code);
       if (!p) return;
       if (confirm(`¿Eliminar ${p.name}?`)) {
+        // Primero eliminar el producto, luego registrar la transacción
+        const { error } = await supabase.from('productos').delete().eq('code', code);
+        if (error) { alert('Error al eliminar: ' + error.message); return; }
         await addTransaction({
           date: new Date().toISOString(),
           code: p.code,
@@ -1503,8 +1586,6 @@
           action: 'Eliminado',
           user_name: currentUser
         });
-        const { error } = await supabase.from('productos').delete().eq('code', code);
-        if (error) { alert('Error al eliminar: ' + error.message); return; }
         await loadProducts();
         renderScanInventory();
         updateSummaryCards();
@@ -1561,7 +1642,7 @@
       const sorted = Object.entries(productMovements).sort((a,b) => b[1].count - a[1].count);
       sorted.forEach(([key, val]) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${key}</td><td>${val.count}</td><td>${val.last ? new Date(val.last).toLocaleString('es-CL') : '-'}</td>`;
+        tr.innerHTML = `<td data-label="Producto">${key}</td><td data-label="Cantidad de Movimientos">${val.count}</td><td data-label="Último Movimiento">${val.last ? new Date(val.last).toLocaleString('es-CL') : '-'}</td>`;
         reportTable.appendChild(tr);
       });
       if (sorted.length === 0) reportTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sin datos</td></tr>';
@@ -1664,13 +1745,17 @@
       if (codes.length === 0) { alert('No hay productos para imprimir etiquetas'); return; }
       const win = window.open('', '_blank', 'width=800,height=600');
       if (!win) { alert('Permite ventanas emergentes para imprimir'); return; }
+      // Incluimos el script de QRCode en la ventana emergente
       win.document.write(`
         <html>
-          <head><title>Etiquetas QR - Sucor</title>
-          <style>body{font-family:sans-serif;padding:20px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;}
-          .label{text-align:center;border:1px solid #ccc;padding:12px;border-radius:8px;width:180px;}
-          .label .code{font-weight:bold;font-size:0.9rem;margin-top:6px;}
-          </style>
+          <head>
+            <title>Etiquetas QR - Sucor</title>
+            <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+            <style>
+              body{font-family:sans-serif;padding:20px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;}
+              .label{text-align:center;border:1px solid #ccc;padding:12px;border-radius:8px;width:180px;}
+              .label .code{font-weight:bold;font-size:0.9rem;margin-top:6px;}
+            </style>
           </head>
           <body>
       `);
@@ -1686,14 +1771,17 @@
       });
       win.document.write('</body></html>');
       win.document.close();
+      // Esperar a que cargue la librería QRCode y luego generar los códigos
       win.addEventListener('load', () => {
-        codes.forEach(code => {
-          const container = win.document.getElementById(`qr-${code}`);
-          if (container) {
-            new win.QRCode(container, { text: code, width:120, height:120 });
-          }
-        });
-        win.print();
+        setTimeout(() => {
+          codes.forEach(code => {
+            const container = win.document.getElementById(`qr-${code}`);
+            if (container && win.QRCode) {
+              new win.QRCode(container, { text: code, width:120, height:120 });
+            }
+          });
+          win.print();
+        }, 300);
       });
     }
 
