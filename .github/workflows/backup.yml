@@ -1,22 +1,21 @@
-name: Backup diario
+name: Backup diario de Supabase
 
 on:
   schedule:
-
-    - cron: '0 3 * * *'
-  workflow_dispatch:   
+    - cron: '0 3 * * *'   # 3:00 AM UTC 
+  workflow_dispatch:     
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4   
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4  
         with:
-          node-version: '18'
+          node-version: '22'         
 
       - name: Instalar dependencias
         run: npm install @supabase/supabase-js
