@@ -335,6 +335,15 @@
       opacity: 1;
       color: #1e293b;
     }
+
+    /* Notificaciones de mantenimiento */
+    .maintenance-alert {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -724,6 +733,7 @@
     let currentUser = null;
     let quickAdjustCode = null;
     let quickAdjustDelta = 1;
+    let offlineQueue = JSON.parse(localStorage.getItem('sucor_offline_queue') || '[]');
 
     // Elementos de autenticación
     const loginScreen = document.getElementById('login-screen');
@@ -759,6 +769,7 @@
         showApp();
         loadProducts();
         loadTransactions();
+        syncOfflineQueue();
       } else {
         currentUser = null;
         showLogin();
@@ -792,6 +803,7 @@
           showApp();
           loadProducts();
           loadTransactions();
+          syncOfflineQueue();
         } else {
           showLogin();
         }
@@ -835,6 +847,9 @@
           renderScanInventory();
           updateSummaryCards();
           renderNotifications();
+        }
+        if (pageId === 'add' && !editingCode) {
+          generateNewCode();
         }
         if (bsCollapse && navbarCollapse.classList.contains('show')) bsCollapse.hide();
       };
@@ -904,7 +919,6 @@
       };
       async function start() {
         try {
-          // Si ya hay una instancia, detener y limpiar antes de crear una nueva
           if (window.html5QrCode) {
             await window.html5QrCode.stop();
             window.html5QrCode.clear();
@@ -1018,7 +1032,6 @@
         if (pendingAssignCode) {
           const p = products.find(x => x.code === pendingAssignCode);
           if (p) {
-            // Ahora el campo es opcional; si está vacío se asigna cadena vacía
             p.assigned_to = val;
             toggleSpecificStatus(p);
           }
@@ -1069,16 +1082,64 @@
       document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
     }
 
+    // Códigos secuenciales cortos
     function generateNewCode() {
       const type = document.getElementById('new-type').value;
       const prefix = type === 'specific' ? 'EQ' : 'MA';
-      let code = '';
-      do {
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-        code = `${prefix}-${timestamp}-${random}`;
-      } while (products.some(p => p.code === code));
+      // Buscar el número más alto ya asignado con ese prefijo
+      const existingCodes = products.filter(p => p.code.startsWith(prefix + '-'));
+      let maxNum = 0;
+      existingCodes.forEach(p => {
+        const numPart = parseInt(p.code.split('-')[1]);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      });
+      const nextNum = maxNum + 1;
+      let code = `${prefix}-${String(nextNum).padStart(4, '0')}`;
+      // Verificación extra por si acaso (colisión por edición manual)
+      while (products.some(p => p.code === code)) {
+        nextNum++;
+        code = `${prefix}-${String(nextNum).padStart(4, '0')}`;
+      }
       document.getElementById('new-code').value = code;
+    }
+
+    // Compresión de imagen antes de subir
+    async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > maxWidth) {
+                height *= maxWidth / width;
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width *= maxHeight / height;
+                height = maxHeight;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              resolve(blob);
+            }, 'image/jpeg', quality);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
 
     function previewPhoto() {
@@ -1086,7 +1147,6 @@
       const previewDiv = document.getElementById('photo-preview');
       previewDiv.innerHTML = '';
       if (file) {
-        // Sin límite de tamaño (se eliminó la restricción de 2 MB)
         const reader = new FileReader();
         reader.onload = e => {
           previewDiv.innerHTML = `<img src="${e.target.result}" class="product-thumb" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">`;
@@ -1113,12 +1173,13 @@
 
       let photo_url = '';
       if (photoFile) {
-        // Sin límite de tamaño
-        const fileExt = photoFile.name.split('.').pop();
+        // Comprimir imagen
+        const compressedBlob = await compressImage(photoFile);
+        const fileExt = 'jpg'; // Forzamos JPEG después de compresión
         const fileName = `${code}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('productos')
-          .upload(fileName, photoFile);
+          .upload(fileName, compressedBlob, { contentType: 'image/jpeg' });
         if (uploadError) {
           alert('Error al subir imagen: ' + uploadError.message);
           return;
@@ -1145,19 +1206,31 @@
 
       if (editingCode) {
         const { error } = await supabase.from('productos').update(product).eq('code', editingCode);
-        if (error) { alert('Error al actualizar: ' + error.message); return; }
-        await loadProducts();
+        if (error) {
+          alert('Error al actualizar: ' + error.message);
+          return;
+        }
+        // Auditoría: registrar edición
+        await addTransaction({
+          date: new Date().toISOString(),
+          code: editingCode,
+          name: name,
+          action: 'Editado',
+          user_name: currentUser
+        });
       } else {
         product.created_by = currentUser;
         const { error } = await supabase.from('productos').insert(product);
-        if (error) { alert('Error al guardar: ' + error.message); return; }
-        await loadProducts();
+        if (error) {
+          alert('Error al guardar: ' + error.message);
+          return;
+        }
       }
 
       form.reset();
       form.classList.remove('was-validated');
       document.getElementById('photo-preview').innerHTML = '';
-      cancelEdit(); // Ahora cancelEdit muestra la página scan
+      cancelEdit(); // Volver a scan
     }
 
     function cancelEdit() {
@@ -1169,7 +1242,6 @@
       document.getElementById('photo-preview').innerHTML = '';
       toggleTypeFields();
       generateNewCode();
-      // Volver a la página de escaneo
       window.showPage('scan');
     }
 
@@ -1179,9 +1251,19 @@
       if (error) {
         console.error('Error cargando productos:', error);
         setConnectionBadge(false);
+        // Intentar cargar desde caché
+        const cached = localStorage.getItem('sucor_products_cache');
+        if (cached) {
+          products = JSON.parse(cached);
+          renderScanInventory();
+          updateSummaryCards();
+          renderNotifications();
+        }
         return;
       }
       products = data || [];
+      // Guardar en caché para uso offline
+      localStorage.setItem('sucor_products_cache', JSON.stringify(products));
       renderScanInventory();
       updateSummaryCards();
       renderNotifications();
@@ -1400,6 +1482,13 @@
       area.innerHTML = '';
       const lowStockItems = products.filter(p => p.type === 'bulk' && (p.minquantity !== undefined && p.quantity <= p.minquantity));
       const assignedItems = products.filter(p => p.type === 'specific' && p.status === 'taken' && p.assigned_to);
+      const upcomingMaintenance = products.filter(p => {
+        if (p.type !== 'specific' || !p.maintenance?.next_maintenance) return false;
+        const next = new Date(p.maintenance.next_maintenance);
+        const now = new Date();
+        const diffDays = (next - now) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7; // próximos 7 días
+      });
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-warning';
@@ -1410,6 +1499,12 @@
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-info';
         alertDiv.innerHTML = `<i class="fas fa-clipboard-list"></i> <strong>Equipos asignados actualmente:</strong> ${assignedItems.map(p => p.name + ' (' + p.assigned_to + ')').join(', ')}`;
+        area.appendChild(alertDiv);
+      }
+      if (upcomingMaintenance.length > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert maintenance-alert';
+        alertDiv.innerHTML = `<i class="fas fa-tools"></i> <strong>Próximo mantenimiento:</strong> ${upcomingMaintenance.map(p => p.name + ' (' + p.maintenance.next_maintenance + ')').join(', ')}`;
         area.appendChild(alertDiv);
       }
     }
@@ -1442,10 +1537,16 @@
 
     async function toggleSpecificStatus(product) {
       const newStatus = product.status === 'available' ? 'taken' : 'available';
+      const oldStatus = product.status;
       product.status = newStatus;
       if (newStatus === 'available') product.assigned_to = '';
       const { error } = await supabase.from('productos').update({ status: product.status, assigned_to: product.assigned_to }).eq('code', product.code);
-      if (error) { alert('Error al actualizar: ' + error.message); return; }
+      if (error) {
+        // Revertir cambio local
+        product.status = oldStatus;
+        alert('Error al actualizar: ' + error.message);
+        return;
+      }
       await addTransaction({
         date: new Date().toISOString(),
         code: product.code,
@@ -1485,9 +1586,14 @@
         alert('No hay suficiente stock para realizar esta operación.');
         return;
       }
+      const oldQuantity = product.quantity;
       product.quantity = newQuantity;
       const { error } = await supabase.from('productos').update({ quantity: newQuantity }).eq('code', product.code);
-      if (error) { alert('Error al actualizar: ' + error.message); return; }
+      if (error) {
+        product.quantity = oldQuantity;
+        alert('Error al actualizar: ' + error.message);
+        return;
+      }
       const action = delta > 0 ? `Entrada de ${delta} ${product.unit || 'unidad(es)'}` : `Salida de ${Math.abs(delta)} ${product.unit || 'unidad(es)'}`;
       await addTransaction({
         date: new Date().toISOString(),
@@ -1501,13 +1607,37 @@
     }
 
     async function addTransaction(transaction) {
+      // Intentar insertar en Supabase
       const { error } = await supabase.from('transacciones').insert(transaction);
-      if (error) console.error('Error guardando transacción:', error);
-      else {
+      if (error) {
+        console.error('Error guardando transacción, encolando offline:', error);
+        offlineQueue.push(transaction);
+        localStorage.setItem('sucor_offline_queue', JSON.stringify(offlineQueue));
+        setConnectionBadge(false);
+      } else {
         transactions.unshift(transaction);
         if (document.getElementById('page-history').classList.contains('active')) renderHistory();
         if (document.getElementById('page-reports').classList.contains('active')) renderReports();
       }
+    }
+
+    // Sincronizar cola offline
+    async function syncOfflineQueue() {
+      if (offlineQueue.length === 0) return;
+      setConnectionBadge(true);
+      const pending = [...offlineQueue];
+      for (const item of pending) {
+        const { error } = await supabase.from('transacciones').insert(item);
+        if (error) {
+          console.error('Error sincronizando transacción:', error);
+          setConnectionBadge(false);
+          return; // Detener si falla
+        }
+        offlineQueue = offlineQueue.filter(t => t !== item);
+      }
+      localStorage.setItem('sucor_offline_queue', JSON.stringify(offlineQueue));
+      // Recargar transacciones para incluir las sincronizadas
+      await loadTransactions();
     }
 
     function showProductDetails(code) {
@@ -1576,7 +1706,6 @@
       const p = products.find(x => x.code === code);
       if (!p) return;
       if (confirm(`¿Eliminar ${p.name}?`)) {
-        // Primero eliminar el producto, luego registrar la transacción
         const { error } = await supabase.from('productos').delete().eq('code', code);
         if (error) { alert('Error al eliminar: ' + error.message); return; }
         await addTransaction({
@@ -1745,7 +1874,6 @@
       if (codes.length === 0) { alert('No hay productos para imprimir etiquetas'); return; }
       const win = window.open('', '_blank', 'width=800,height=600');
       if (!win) { alert('Permite ventanas emergentes para imprimir'); return; }
-      // Incluimos el script de QRCode en la ventana emergente
       win.document.write(`
         <html>
           <head>
@@ -1771,7 +1899,6 @@
       });
       win.document.write('</body></html>');
       win.document.close();
-      // Esperar a que cargue la librería QRCode y luego generar los códigos
       win.addEventListener('load', () => {
         setTimeout(() => {
           codes.forEach(code => {
