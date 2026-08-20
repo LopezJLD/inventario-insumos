@@ -294,7 +294,6 @@
       font-size: 0.7rem;
       padding: 4px 8px;
     }
-    /* Aumentar área táctil en móviles */
     @media (max-width: 576px) {
       .inventory-card .card-footer .btn {
         font-size: 0.8rem;
@@ -444,7 +443,7 @@
         <hr>
         <h3 class="fw-bold mb-3"><i class="fas fa-boxes me-2" style="color:var(--color-secondary);"></i>Inventario Actual</h3>
         
-        <!-- Filtros mejorados: usamos flex wrap en lugar de btn-group -->
+        <!-- Filtros -->
         <div class="row g-2 mb-3">
           <div class="col-md-6">
             <div class="filter-btn-group" id="type-filter-group">
@@ -493,6 +492,7 @@
               <option value="Entrada">Entrada</option>
               <option value="Salida">Salida</option>
               <option value="Eliminado">Eliminado</option>
+              <option value="Editado">Editado</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -558,8 +558,8 @@
                   <option value="taken">Tomado</option>
                 </select>
               </div>
-              <div class="col-md-3">
-                <label class="form-label">Asignado a (si tomado)</label>
+              <div class="col-md-3" id="assigned-to-field">
+                <label class="form-label">Asignado a</label>
                 <input type="text" class="form-control" id="new-assigned-to" placeholder="Persona o proyecto">
               </div>
             </div>
@@ -567,12 +567,10 @@
               <div class="col-md-3">
                 <label class="form-label">Último mantenimiento</label>
                 <input type="date" class="form-control" id="new-last-maintenance">
-                <small class="text-muted">dd/mm/aaaa</small>
               </div>
               <div class="col-md-3">
                 <label class="form-label">Próximo mantenimiento</label>
                 <input type="date" class="form-control" id="new-next-maintenance">
-                <small class="text-muted">dd/mm/aaaa</small>
               </div>
               <div class="col-md-3">
                 <label class="form-label">Horas de uso</label>
@@ -604,7 +602,7 @@
 
           <div class="col-12 d-flex">
             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar</button>
-            <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary ms-2" style="display:none;">Cancelar edición</button>
+            <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary ms-2"><i class="fas fa-arrow-left"></i> Volver</button>
           </div>
         </form>
       </div>
@@ -704,7 +702,7 @@
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Asignar equipo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <p>¿A quién o a qué proyecto se asigna este equipo? <small class="text-muted">(Opcional)</small></p>
+          <p>¿A quién o a qué proyecto se asigna <strong id="assign-product-name"></strong>? <small class="text-muted">(Opcional)</small></p>
           <input type="text" class="form-control" id="assign-input" placeholder="Nombre de persona o proyecto">
         </div>
         <div class="modal-footer">
@@ -850,6 +848,7 @@
         }
         if (pageId === 'add' && !editingCode) {
           generateNewCode();
+          toggleAssignedField();
         }
         if (bsCollapse && navbarCollapse.classList.contains('show')) bsCollapse.hide();
       };
@@ -1050,10 +1049,12 @@
         toggleTypeFields();
         if (!editingCode) generateNewCode();
       });
+      document.getElementById('new-status').addEventListener('change', toggleAssignedField);
       document.getElementById('add-product-form').addEventListener('submit', handleFormSubmit);
       document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
       document.getElementById('new-photo').addEventListener('change', previewPhoto);
       toggleTypeFields();
+      toggleAssignedField();
       generateNewCode();
     }
 
@@ -1080,13 +1081,27 @@
       const type = document.getElementById('new-type').value;
       document.getElementById('specific-fields').style.display = type === 'specific' ? 'block' : 'none';
       document.getElementById('bulk-fields').style.display = type === 'bulk' ? 'block' : 'none';
+      if (type === 'bulk') {
+        // Limpiar campos específicos si se cambia a material
+        document.getElementById('new-description').value = '';
+        document.getElementById('new-status').value = 'available';
+        document.getElementById('new-assigned-to').value = '';
+        toggleAssignedField();
+      }
+    }
+
+    function toggleAssignedField() {
+      const status = document.getElementById('new-status').value;
+      const assignedField = document.getElementById('assigned-to-field');
+      if (assignedField) {
+        assignedField.style.display = status === 'taken' ? 'block' : 'none';
+      }
     }
 
     // Códigos secuenciales cortos
     function generateNewCode() {
       const type = document.getElementById('new-type').value;
       const prefix = type === 'specific' ? 'EQ' : 'MA';
-      // Buscar el número más alto ya asignado con ese prefijo
       const existingCodes = products.filter(p => p.code.startsWith(prefix + '-'));
       let maxNum = 0;
       existingCodes.forEach(p => {
@@ -1097,7 +1112,6 @@
       });
       const nextNum = maxNum + 1;
       let code = `${prefix}-${String(nextNum).padStart(4, '0')}`;
-      // Verificación extra por si acaso (colisión por edición manual)
       while (products.some(p => p.code === code)) {
         nextNum++;
         code = `${prefix}-${String(nextNum).padStart(4, '0')}`;
@@ -1173,9 +1187,8 @@
 
       let photo_url = '';
       if (photoFile) {
-        // Comprimir imagen
         const compressedBlob = await compressImage(photoFile);
-        const fileExt = 'jpg'; // Forzamos JPEG después de compresión
+        const fileExt = 'jpg';
         const fileName = `${code}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('productos')
@@ -1191,7 +1204,7 @@
       if (type === 'specific') {
         product.description = document.getElementById('new-description').value.trim();
         product.status = document.getElementById('new-status').value;
-        product.assigned_to = document.getElementById('new-assigned-to').value.trim();
+        product.assigned_to = product.status === 'taken' ? document.getElementById('new-assigned-to').value.trim() : '';
         product.maintenance = {
           last_maintenance: document.getElementById('new-last-maintenance').value,
           next_maintenance: document.getElementById('new-next-maintenance').value,
@@ -1210,7 +1223,6 @@
           alert('Error al actualizar: ' + error.message);
           return;
         }
-        // Auditoría: registrar edición
         await addTransaction({
           date: new Date().toISOString(),
           code: editingCode,
@@ -1237,10 +1249,11 @@
       editingCode = null;
       document.getElementById('editing-code').value = '';
       document.getElementById('add-page-title').innerHTML = '<i class="fas fa-plus-circle me-2" style="color:var(--color-primary);"></i>Agregar Producto';
-      document.getElementById('cancel-edit-btn').style.display = 'none';
+      document.getElementById('cancel-edit-btn').style.display = 'inline-block'; // Mantener visible
       document.getElementById('add-product-form').reset();
       document.getElementById('photo-preview').innerHTML = '';
       toggleTypeFields();
+      toggleAssignedField();
       generateNewCode();
       window.showPage('scan');
     }
@@ -1251,7 +1264,6 @@
       if (error) {
         console.error('Error cargando productos:', error);
         setConnectionBadge(false);
-        // Intentar cargar desde caché
         const cached = localStorage.getItem('sucor_products_cache');
         if (cached) {
           products = JSON.parse(cached);
@@ -1262,7 +1274,6 @@
         return;
       }
       products = data || [];
-      // Guardar en caché para uso offline
       localStorage.setItem('sucor_products_cache', JSON.stringify(products));
       renderScanInventory();
       updateSummaryCards();
@@ -1312,6 +1323,9 @@
         return true;
       });
 
+      // Ordenar por código
+      list.sort((a, b) => a.code.localeCompare(b.code));
+
       if (list.length === 0) {
         container.innerHTML = `<div class="col-12 text-center text-muted py-4">No se encontraron productos</div>`;
         return;
@@ -1324,7 +1338,6 @@
         const card = document.createElement('div');
         card.className = 'inventory-card';
 
-        // ---- HEADER: código a la izquierda, imagen a la derecha ----
         const header = document.createElement('div');
         header.className = 'card-header';
 
@@ -1343,7 +1356,6 @@
         header.appendChild(imgContainer);
         card.appendChild(header);
 
-        // ---- BODY: nombre, badges, ubicación ----
         const body = document.createElement('div');
         body.className = 'card-body';
 
@@ -1398,11 +1410,9 @@
 
         card.appendChild(body);
 
-        // ---- FOOTER: botones de acción ----
         const footer = document.createElement('div');
         footer.className = 'card-footer';
 
-        // Botón QR siempre presente
         const qrBtn = document.createElement('button');
         qrBtn.className = 'btn btn-sm btn-outline-secondary qr-btn';
         qrBtn.dataset.code = p.code;
@@ -1457,7 +1467,6 @@
 
         card.appendChild(footer);
 
-        // ---- Asignar eventos a los botones de esta tarjeta ----
         card.querySelector('.qr-btn')?.addEventListener('click', () => showQrModal(p.code));
         card.querySelector('.toggle-specific-btn')?.addEventListener('click', () => requestToggleSpecific(p.code));
         card.querySelector('.adjust-bulk-plus')?.addEventListener('click', () => openQuickAdjust(p.code, 1));
@@ -1487,7 +1496,7 @@
         const next = new Date(p.maintenance.next_maintenance);
         const now = new Date();
         const diffDays = (next - now) / (1000 * 60 * 60 * 24);
-        return diffDays >= 0 && diffDays <= 7; // próximos 7 días
+        return diffDays >= 0 && diffDays <= 7;
       });
       if (lowStockItems.length > 0) {
         const alertDiv = document.createElement('div');
@@ -1531,6 +1540,7 @@
       const p = products.find(x => x.code === code);
       if (!p) return;
       pendingAssignCode = code;
+      document.getElementById('assign-product-name').textContent = p.name;
       document.getElementById('assign-input').value = p.assigned_to || '';
       new bootstrap.Modal(document.getElementById('assignModal')).show();
     }
@@ -1542,7 +1552,6 @@
       if (newStatus === 'available') product.assigned_to = '';
       const { error } = await supabase.from('productos').update({ status: product.status, assigned_to: product.assigned_to }).eq('code', product.code);
       if (error) {
-        // Revertir cambio local
         product.status = oldStatus;
         alert('Error al actualizar: ' + error.message);
         return;
@@ -1607,7 +1616,6 @@
     }
 
     async function addTransaction(transaction) {
-      // Intentar insertar en Supabase
       const { error } = await supabase.from('transacciones').insert(transaction);
       if (error) {
         console.error('Error guardando transacción, encolando offline:', error);
@@ -1621,7 +1629,6 @@
       }
     }
 
-    // Sincronizar cola offline
     async function syncOfflineQueue() {
       if (offlineQueue.length === 0) return;
       setConnectionBadge(true);
@@ -1631,12 +1638,11 @@
         if (error) {
           console.error('Error sincronizando transacción:', error);
           setConnectionBadge(false);
-          return; // Detener si falla
+          return;
         }
         offlineQueue = offlineQueue.filter(t => t !== item);
       }
       localStorage.setItem('sucor_offline_queue', JSON.stringify(offlineQueue));
-      // Recargar transacciones para incluir las sincronizadas
       await loadTransactions();
     }
 
@@ -1693,6 +1699,7 @@
           document.getElementById('new-hours-use').value = p.maintenance.hours_use || '';
           document.getElementById('new-maintenance-notes').value = p.maintenance.notes || '';
         }
+        toggleAssignedField();
       } else {
         document.getElementById('new-quantity').value = p.quantity;
         document.getElementById('new-min-quantity').value = p.minquantity;
@@ -1919,7 +1926,6 @@
       alertDiv.innerHTML = message;
     }
 
-    // Iniciar
     document.addEventListener('DOMContentLoaded', () => {
       initApp();
       setTimeout(cerrarMenu, 100);
